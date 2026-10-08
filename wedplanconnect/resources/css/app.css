@@ -1,0 +1,211 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../views/**/*.blade.php';
+@source '../js/**/*.js';
+
+/*
+ * "Grand" theme: deep burgundy and plum with champagne gold on warm ivory,
+ * Playfair Display headings with formal small-capital labels.
+ */
+@theme {
+    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-display: 'Playfair Display', ui-serif, Georgia, serif;
+
+    --color-brand-50: #fbf4f5;
+    --color-brand-100: #f5e5e9;
+    --color-brand-200: #eacbd3;
+    --color-brand-300: #d9a2b1;
+    --color-brand-400: #c3768c;
+    --color-brand-500: #a9536d;
+    --color-brand-600: #8f3d56;
+    --color-brand-700: #763046;
+    --color-brand-800: #5f283a;
+    --color-brand-900: #4a1f2e;
+    --color-brand-950: #2c1019;
+
+    --color-gold-50: #fcf8ef;
+    --color-gold-100: #f6edd6;
+    --color-gold-200: #ecdaae;
+    --color-gold-300: #dfc17e;
+    --color-gold-400: #cfa75a;
+    --color-gold-500: #b98d3f;
+    --color-gold-600: #9c7432;
+    --color-gold-700: #7b5a27;
+
+    --color-ink: #2a1d22;
+    --color-canvas: #faf6f0;
+    --color-line: #ece2d4;
+}
+
+@layer base {
+    body {
+        @apply bg-canvas text-ink antialiased;
+    }
+    h1, h2, h3 {
+        @apply text-ink;
+    }
+    ::selection {
+        @apply bg-gold-200 text-brand-900;
+    }
+}
+
+@layer components {
+    /* Surfaces */
+    .card {
+        @apply rounded-2xl border border-line bg-white
+            shadow-[0_1px_2px_rgba(74,31,46,0.04),0_14px_34px_-22px_rgba(74,31,46,0.35)];
+    }
+    .card-header {
+        @apply flex items-center justify-between gap-3 border-b border-line px-5 py-4;
+    }
+    .card-title {
+        @apply flex items-center gap-2 font-display text-[17px] font-semibold text-ink
+            before:inline-block before:size-1.5 before:rotate-45 before:bg-gold-400 before:content-[''];
+    }
+    .card-body {
+        @apply p-5;
+    }
+    .card-hover {
+        @apply transition duration-300 hover:-translate-y-0.5 hover:border-gold-300 hover:shadow-[0_18px_40px_-20px_rgba(74,31,46,0.45)];
+    }
+
+    /* Deep burgundy panel with a soft gold glow, used for dashboard and status headers. */
+    .hero-panel {
+        @apply relative overflow-hidden rounded-2xl bg-gradient-to-br from-brand-700 via-brand-900 to-brand-950 text-white
+            ring-1 ring-gold-400/40 shadow-[0_24px_50px_-28px_rgba(44,16,25,0.9)];
+    }
+    .hero-panel::before {
+        content: '';
+        @apply pointer-events-none absolute -top-24 -right-16 size-72 rounded-full bg-gold-400/20 blur-3xl;
+    }
+    /* Inner gold frame plus the diamond lattice, layered over the gradient. */
+    .hero-panel::after {
+        content: '';
+        @apply pointer-events-none absolute inset-2 rounded-xl border border-gold-300/25;
+        background-image:
+            linear-gradient(45deg, rgb(207 167 90 / 0.06) 1px, transparent 1px),
+            linear-gradient(-45deg, rgb(207 167 90 / 0.06) 1px, transparent 1px);
+        background-size: 28px 28px;
+    }
+
+    /* Subtle damask-like diamond lattice for dark backgrounds. */
+    .lattice {
+        background-image:
+            linear-gradient(45deg, rgb(207 167 90 / 0.07) 1px, transparent 1px),
+            linear-gradient(-45deg, rgb(207 167 90 / 0.07) 1px, transparent 1px);
+        background-size: 28px 28px;
+    }
+
+    /* Formal small-capitals label shown above headings. */
+    .eyebrow {
+        @apply text-xs font-semibold tracking-[0.3em] uppercase;
+    }
+
+    .text-gold-gradient {
+        @apply bg-gradient-to-r from-gold-300 via-gold-200 to-gold-400 bg-clip-text text-transparent;
+    }
+
+    /* Buttons */
+    .btn, .btn-primary, .btn-secondary, .btn-danger, .btn-success, .btn-outline, .btn-gold {
+        @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition
+            focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-400 focus-visible:ring-offset-2 disabled:opacity-50;
+    }
+    .btn-primary {
+        @apply bg-gradient-to-b from-brand-600 to-brand-800 text-white
+            shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_6px_14px_-8px_rgba(74,31,46,0.8)]
+            hover:from-brand-700 hover:to-brand-900;
+    }
+    .btn-gold {
+        @apply bg-gradient-to-b from-gold-300 to-gold-500 font-semibold text-brand-950
+            shadow-[inset_0_1px_0_rgba(255,255,255,0.45),0_8px_18px_-10px_rgba(123,90,39,0.9)]
+            hover:from-gold-200 hover:to-gold-400;
+    }
+    .btn-secondary {
+        @apply border border-line bg-white text-ink hover:border-gold-300 hover:bg-gold-50;
+    }
+    .btn-danger {
+        @apply border border-red-200 bg-white text-red-700 hover:bg-red-50;
+    }
+    .btn-success {
+        @apply bg-gradient-to-b from-emerald-600 to-emerald-700 text-white hover:from-emerald-700 hover:to-emerald-800;
+    }
+    .btn-outline {
+        @apply border border-brand-200 bg-white text-brand-700 hover:border-gold-300 hover:bg-gold-50;
+    }
+    .btn-sm {
+        @apply px-3 py-1.5 text-xs;
+    }
+    /* Compact icon-only action (e.g. remove, archive) that turns red on hover. */
+    .btn-icon {
+        @apply inline-grid size-8 cursor-pointer place-items-center rounded-lg text-stone-400 transition
+            hover:bg-red-50 hover:text-red-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300;
+    }
+
+    .link {
+        @apply font-medium text-brand-600 decoration-gold-400 underline-offset-4 hover:text-brand-800 hover:underline;
+    }
+
+    /* Forms */
+    .label {
+        @apply mb-1 block text-sm font-medium text-stone-700;
+    }
+    .input {
+        @apply block w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink shadow-xs
+            placeholder:text-stone-400 focus:border-gold-400 focus:ring-2 focus:ring-gold-200 focus:outline-none;
+    }
+    .input-error {
+        @apply border-red-400 focus:border-red-400 focus:ring-red-100;
+    }
+    .error-text {
+        @apply mt-1 text-xs text-red-600;
+    }
+    .hint {
+        @apply mt-1 text-xs text-stone-500;
+    }
+    .check-chip {
+        @apply flex cursor-pointer items-center gap-2.5 rounded-lg border border-line bg-white px-3 py-2 text-sm transition
+            hover:border-gold-300 has-[:checked]:border-gold-400 has-[:checked]:bg-gold-50;
+    }
+
+    /* Tables */
+    .table {
+        @apply w-full text-left text-sm;
+    }
+    .table thead th {
+        @apply border-b border-line bg-gold-50/70 px-4 py-2.5 text-[11px] font-semibold tracking-[0.12em] text-gold-700 uppercase;
+    }
+    .table tbody td {
+        @apply border-b border-line/70 px-4 py-3 align-middle;
+    }
+    .table tbody tr:hover {
+        @apply bg-gold-50/50;
+    }
+
+    /* Badges */
+    .badge, .badge-green, .badge-amber, .badge-red, .badge-blue, .badge-gray, .badge-brand, .badge-gold {
+        @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap ring-1;
+    }
+    .badge-green { @apply bg-emerald-50 text-emerald-700 ring-emerald-200; }
+    .badge-amber { @apply bg-amber-50 text-amber-700 ring-amber-200; }
+    .badge-red { @apply bg-red-50 text-red-700 ring-red-200; }
+    .badge-blue { @apply bg-sky-50 text-sky-700 ring-sky-200; }
+    .badge-gray { @apply bg-stone-100 text-stone-600 ring-stone-200; }
+    .badge-brand { @apply bg-brand-50 text-brand-700 ring-brand-200; }
+    .badge-gold { @apply bg-gold-50 text-gold-700 ring-gold-300; }
+
+    /* Dark burgundy sidebar */
+    .nav-link {
+        @apply relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-brand-100/75 transition
+            hover:bg-white/5 hover:text-white;
+    }
+    .nav-link.active {
+        @apply bg-gradient-to-r from-gold-400/20 to-transparent text-gold-200
+            before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-full before:bg-gold-400 before:content-[''];
+    }
+    .nav-section {
+        @apply px-3 pt-6 pb-1.5 text-[10.5px] font-semibold tracking-[0.18em] text-gold-400/80 uppercase;
+    }
+}
