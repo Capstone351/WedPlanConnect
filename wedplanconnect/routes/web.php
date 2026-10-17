@@ -12,6 +12,7 @@ use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\OutboxController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\Planner;
+use App\Http\Controllers\PortfolioController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\QrStatusController;
 use App\Http\Controllers\ReportController;
@@ -19,9 +20,17 @@ use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\SupplierProductController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\Vendor;
+use App\Http\Controllers\WeddingGalleryController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', HomeController::class)->name('home');
+
+/*
+| Public portfolio of past weddings ("Our Weddings")
+*/
+Route::get('/weddings', [WeddingGalleryController::class, 'index'])->name('weddings.index');
+Route::get('/weddings/photos/{photo}', [WeddingGalleryController::class, 'photo'])->name('weddings.photo');
+Route::get('/weddings/{entry:slug}', [WeddingGalleryController::class, 'show'])->name('weddings.show');
 
 /*
 | Authentication (UC-01)
@@ -127,6 +136,11 @@ Route::middleware('auth')->group(function () {
         Route::delete('/payments/{payment}', [PaymentController::class, 'destroy'])->name('payments.destroy');
         Route::get('/bookings/{booking}/contract.pdf', [PaymentController::class, 'contract'])->name('bookings.contract');
 
+        // Public portfolio management
+        Route::resource('portfolio', PortfolioController::class)->except('show');
+        Route::patch('/portfolio/{portfolio}/photos/{photo}/cover', [PortfolioController::class, 'cover'])->name('portfolio.photos.cover');
+        Route::delete('/portfolio/{portfolio}/photos/{photo}', [PortfolioController::class, 'destroyPhoto'])->name('portfolio.photos.destroy');
+
         // Test-mode email outbox (only while MAIL_MAILER=log)
         Route::get('/outbox', [OutboxController::class, 'index'])->name('outbox.index');
         Route::get('/outbox/{message}', [OutboxController::class, 'show'])->name('outbox.show');
@@ -151,6 +165,13 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:client')->prefix('my')->name('client.')->group(function () {
         Route::get('/', Client\DashboardController::class)->name('dashboard');
         Route::get('/status/{booking}', [Client\DashboardController::class, 'status'])->name('status');
+        Route::get('/wedding-date', [Client\WeddingDateController::class, 'edit'])->name('wedding-date');
+        Route::put('/wedding-date', [Client\WeddingDateController::class, 'update'])->name('wedding-date.update');
+        Route::get('/wedding-date/availability', [Client\WeddingDateController::class, 'availability'])->middleware('throttle:30,1')->name('wedding-date.availability');
+        Route::get('/planner', [Client\PlannerChoiceController::class, 'edit'])->name('planner');
+        Route::put('/planner', [Client\PlannerChoiceController::class, 'update'])->name('planner.update');
+        Route::get('/budget', [Client\BudgetController::class, 'edit'])->name('budget');
+        Route::put('/budget', [Client\BudgetController::class, 'update'])->name('budget.update');
         Route::post('/catalog/preferences', [Client\CatalogController::class, 'store'])->name('preferences.store');
         Route::delete('/catalog/preferences/{preference}', [Client\CatalogController::class, 'destroy'])->name('preferences.destroy');
     });

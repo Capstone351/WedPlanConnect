@@ -2,8 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Models\Supplier;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Routing\Middleware\ThrottleRequests;
 use Tests\TestCase;
 
 class AuthenticationTest extends TestCase
@@ -68,7 +70,7 @@ class AuthenticationTest extends TestCase
     public function test_staff_can_preview_the_catalog_but_not_save_favorites(): void
     {
         $admin = User::factory()->admin()->create();
-        $supplier = \App\Models\Supplier::factory()->create();
+        $supplier = Supplier::factory()->create();
 
         $this->actingAs($admin)->get('/my/catalog')->assertOk()->assertSee('Staff preview');
         $this->actingAs($admin)->get("/my/catalog/{$supplier->id}")->assertOk();
@@ -91,10 +93,33 @@ class AuthenticationTest extends TestCase
     public function test_clients_can_self_register(): void
     {
         $this->post('/register', [
-            'name' => 'Ana & Miguel', 'email' => 'ana@example.com',
+            'name' => 'Ana Santos', 'email' => 'Ana.Santos@Gmail.com', 'phone' => '09171234567',
             'password' => 'Secret123', 'password_confirmation' => 'Secret123', 'privacy' => '1',
         ])->assertRedirect('/my');
 
-        $this->assertDatabaseHas('users', ['email' => 'ana@example.com', 'role' => 'client']);
+        $this->assertDatabaseHas('users', ['email' => 'ana.santos@gmail.com', 'role' => 'client', 'phone' => '09171234567']);
+    }
+
+    public function test_registration_requires_one_name_and_an_eleven_digit_mobile(): void
+    {
+        // This test posts more invalid sign-ups than the route's throttle allows per minute.
+        $this->withoutMiddleware(ThrottleRequests::class);
+
+        $valid = ['name' => 'Ana Santos', 'email' => 'ana@gmail.com', 'phone' => '09171234567',
+            'password' => 'Secret123', 'password_confirmation' => 'Secret123', 'privacy' => '1'];
+
+        foreach (['Ana & Miguel', 'Ana and Miguel', 'Ana at Miguel', 'Ana / Miguel'] as $couple) {
+            $this->post('/register', ['name' => $couple] + $valid)->assertSessionHasErrors('name');
+        }
+
+        foreach (['', '0917123456', '091712345678', '0917-123-4567', '+639171234567', '19171234567', '08171234567'] as $phone) {
+            $this->post('/register', ['phone' => $phone] + $valid)->assertSessionHasErrors('phone');
+        }
+
+        foreach (['ana@yahoo.com', 'ana@gmail.co', 'ana@gmail.com.ph', 'ana@mail.gmail.com', 'ana@example.com'] as $email) {
+            $this->post('/register', ['email' => $email] + $valid)->assertSessionHasErrors('email');
+        }
+
+        $this->assertDatabaseCount('users', 0);
     }
 }

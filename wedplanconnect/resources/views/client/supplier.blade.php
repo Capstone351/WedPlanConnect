@@ -4,13 +4,13 @@
         @if ($preferenceId)
             <form method="POST" action="{{ route('client.preferences.destroy', $preferenceId) }}">
                 @csrf @method('DELETE')
-                <button class="btn-secondary">♥ In your preferences · Remove</button>
+                <button class="btn-secondary">♥ In your favorites · Remove</button>
             </form>
-        @elseif ($booking)
+        @elseif ($canFavorite)
             <form method="POST" action="{{ route('client.preferences.store') }}">
                 @csrf
                 <input type="hidden" name="supplier_id" value="{{ $supplier->id }}">
-                <button class="btn-primary">♡ Add to my preferences</button>
+                <button class="btn-primary">♡ Add to my favorites</button>
             </form>
         @endif
     </x-slot:actions>

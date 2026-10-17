@@ -31,6 +31,39 @@
         <x-stat label="Low-stock alerts" :value="$lowStock->count()" icon="cube" :tone="$lowStock->isNotEmpty() ? 'amber' : 'green'" />
     </div>
 
+    @if ($chosenMe->isNotEmpty())
+        <div class="card mt-6">
+            <div class="card-header">
+                <h2 class="card-title">Couples who chose you</h2>
+                <span class="badge-gold">{{ $chosenMe->count() }} waiting for a booking</span>
+            </div>
+            <ul class="divide-y divide-line">
+                @foreach ($chosenMe as $c)
+                    <li class="flex flex-wrap items-center gap-4 px-5 py-3 text-sm">
+                        <div class="min-w-0 flex-1">
+                            <div class="font-medium">{{ $c->name }}</div>
+                            <div class="text-xs text-stone-500">{{ $c->email }} · {{ $c->phone ?: 'no phone' }} · signed up {{ $c->created_at->diffForHumans() }}</div>
+                        </div>
+                        <div class="flex flex-wrap gap-2 text-xs">
+                            @if ($c->wedding_date)
+                                <span class="badge-brand">📅 {{ $c->wedding_date->format('M j, Y') }}@if ($c->wedding_venue) · {{ \Illuminate\Support\Str::limit($c->wedding_venue, 28) }} @endif</span>
+                            @else
+                                <span class="badge-gray">No date yet</span>
+                            @endif
+                            @if ($c->budget)
+                                <span class="badge-gold">Budget ₱{{ number_format((float) $c->budget->total_amount, 0) }}@if ($c->budget->guest_count) · {{ $c->budget->guest_count }} guests @endif</span>
+                            @else
+                                <span class="badge-gray">No budget yet</span>
+                            @endif
+                            <span class="badge-brand">♥ {{ $c->favorite_suppliers_count }} {{ str('favorite')->plural($c->favorite_suppliers_count) }}</span>
+                        </div>
+                        <a href="{{ route('bookings.create', ['client_id' => $c->id]) }}" class="btn-primary btn-sm"><x-icon name="plus" class="size-4" /> Create booking</a>
+                    </li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
     <div class="mt-6 grid gap-6 lg:grid-cols-3 lg:items-start">
         <div class="card lg:col-span-2">
             <div class="card-header"><h2 class="card-title">Upcoming bookings</h2><a href="{{ route('bookings.index') }}" class="text-sm link">View all</a></div>
@@ -84,12 +117,12 @@
 
             @if ($newPreferences->isNotEmpty())
                 <div class="card">
-                    <div class="card-header"><h2 class="card-title">Client supplier picks</h2></div>
+                    <div class="card-header"><h2 class="card-title">Couples' favorite suppliers</h2></div>
                     <ul class="divide-y divide-stone-100 text-sm">
                         @foreach ($newPreferences as $p)
                             <li class="px-5 py-2.5">
-                                <a href="{{ route('bookings.show', $p->booking_id) }}" class="link">{{ $p->booking->client_name }}</a>
-                                <span class="text-stone-500">prefers</span> {{ $p->supplier->name }}
+                                <span class="font-medium text-brand-700">{{ $p->client?->name }}</span>
+                                <span class="text-stone-500">♥</span> {{ $p->supplier->name }}
                             </li>
                         @endforeach
                     </ul>

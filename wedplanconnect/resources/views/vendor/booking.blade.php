@@ -32,9 +32,12 @@
                 <h2 class="card-title">Your products ordered for this wedding</h2>
                 <span class="text-xs text-stone-500">{{ $items->sum('quantity') }} unit(s)</span>
             </div>
+            @if ($items->isNotEmpty())
+                <p class="border-b border-line px-5 py-2.5 text-xs text-stone-500">Have each product ready by its date so it can be set up for the wedding. Ask the Wedding Planner if a date doesn't work for you.</p>
+            @endif
             <div class="overflow-x-auto">
                 <table class="table">
-                    <thead><tr><th>Product</th><th class="text-right">Qty</th><th>Planner notes</th><th class="text-right">Subtotal</th></tr></thead>
+                    <thead><tr><th>Product</th><th>Ready by</th><th class="text-right">Qty</th><th>Planner notes</th><th class="text-right">Subtotal</th></tr></thead>
                     <tbody>
                         @forelse ($items as $item)
                             <tr>
@@ -44,12 +47,17 @@
                                         <span class="font-medium">{{ $item->product->name }}</span>
                                     </div>
                                 </td>
+                                <td class="whitespace-nowrap">
+                                    @php [$dueLabel, $dueTone] = $item->dueStatus(); @endphp
+                                    <div class="font-medium">{{ $item->due_date?->format('D, M j, Y') ?? '—' }}</div>
+                                    <span class="badge-{{ $dueTone }} mt-1">{{ $dueLabel }}</span>
+                                </td>
                                 <td class="text-right">{{ $item->quantity }}</td>
                                 <td class="text-stone-600">{{ $item->notes ?: '—' }}</td>
                                 <td class="text-right tabular-nums">{{ $item->subtotal() !== null ? '₱'.number_format($item->subtotal(), 2) : '—' }}</td>
                             </tr>
                         @empty
-                            <tr><td colspan="4" class="py-6 text-center text-stone-500">The planner hasn't selected specific products from you yet.</td></tr>
+                            <tr><td colspan="5" class="py-6 text-center text-stone-500">The planner hasn't selected specific products from you yet.</td></tr>
                         @endforelse
                     </tbody>
                 </table>

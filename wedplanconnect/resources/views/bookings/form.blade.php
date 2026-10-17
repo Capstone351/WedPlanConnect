@@ -56,9 +56,15 @@
                     <select id="client_id" name="client_id" class="input" data-client-select>
                         <option value="">Select a client…</option>
                         @foreach ($clients as $c)
-                            <option value="{{ $c->id }}" data-name="{{ $c->name }}" data-phone="{{ $c->phone }}" @selected(old('client_id', $booking->client_id) == $c->id)>{{ $c->name }} — {{ $c->email }}</option>
+                            <option value="{{ $c->id }}" data-name="{{ $c->name }}" data-phone="{{ $c->phone }}"
+                                data-planner="{{ $c->preferred_planner_id }}" data-planner-name="{{ $c->preferredPlanner?->name }}"
+                                data-date="{{ $c->wedding_date?->isFuture() ? $c->wedding_date->toDateString() : '' }}"
+                                data-date-label="{{ $c->wedding_date?->format('M j, Y') }}{{ $c->wedding_date_alt ? ' (backup: '.$c->wedding_date_alt->format('M j, Y').')' : '' }}"
+                                data-venue="{{ $c->wedding_venue }}"
+                                @selected(old('client_id', $booking->client_id) == $c->id)>{{ $c->name }} — {{ $c->email }}</option>
                         @endforeach
                     </select>
+                    <p class="hint hidden" data-client-planner-hint></p>
                 </div>
                 <div id="client-new" class="hidden space-y-4">
                     <div>

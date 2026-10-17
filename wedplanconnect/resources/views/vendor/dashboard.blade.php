@@ -48,6 +48,40 @@
         </div>
 
         <div class="card mt-6">
+            <div class="card-header">
+                <h2 class="card-title">Products to prepare</h2>
+                <span class="text-xs text-stone-500">Earliest deadline first</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="table">
+                    <thead><tr><th>Ready by</th><th>Product</th><th class="text-right">Qty</th><th>Wedding</th><th></th></tr></thead>
+                    <tbody>
+                        @forelse ($deadlines as $item)
+                            @php [$dueLabel, $dueTone] = $item->dueStatus(); @endphp
+                            <tr>
+                                <td class="whitespace-nowrap">
+                                    <div class="font-medium">{{ $item->due_date?->format('M j, Y') ?? '—' }}</div>
+                                    <span class="badge-{{ $dueTone }} mt-1">{{ $dueLabel }}</span>
+                                </td>
+                                <td>
+                                    <div class="font-medium">{{ $item->product->name }}</div>
+                                    @if ($item->notes)
+                                        <div class="text-xs text-stone-500">{{ $item->notes }}</div>
+                                    @endif
+                                </td>
+                                <td class="text-right">{{ $item->quantity }}</td>
+                                <td>{{ $item->booking->client_name }}<div class="text-xs text-stone-500">{{ $item->booking->event_date->format('M j, Y') }}</div></td>
+                                <td class="text-right"><a href="{{ route('vendor.bookings.show', $item->booking_id) }}" class="btn-secondary btn-sm">Details</a></td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="5" class="py-10 text-center text-stone-500">No products ordered from you for upcoming weddings yet.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card mt-6">
             <div class="card-header"><h2 class="card-title">Current assignments</h2><a href="{{ route('vendor.bookings') }}" class="text-sm link">All bookings</a></div>
             <div class="overflow-x-auto">
                 <table class="table">

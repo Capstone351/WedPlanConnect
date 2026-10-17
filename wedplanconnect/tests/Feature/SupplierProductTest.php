@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Booking;
+use App\Models\ClientBudget;
 use App\Models\Supplier;
 use App\Models\SupplierProduct;
 use App\Models\User;
@@ -76,7 +77,7 @@ class SupplierProductTest extends TestCase
         $booking = Booking::factory()->create();
         $product = SupplierProduct::create(['supplier_id' => Supplier::factory()->create()->id, 'name' => 'Arch', 'price' => 28000, 'is_available' => true]);
 
-        $this->actingAs($booking->planner)->post("/bookings/{$booking->id}/items", ['supplier_product_id' => $product->id, 'quantity' => 2])
+        $this->actingAs($booking->planner)->post("/bookings/{$booking->id}/items", ['supplier_product_id' => $product->id, 'quantity' => 2, 'due_date' => $booking->event_date->toDateString()])
             ->assertSessionHasNoErrors();
 
         $item = $booking->bookingProducts()->first();
@@ -90,7 +91,7 @@ class SupplierProductTest extends TestCase
         $booking = Booking::factory()->create();
         $product = SupplierProduct::create(['supplier_id' => Supplier::factory()->create()->id, 'name' => 'Old item', 'is_available' => false]);
 
-        $this->actingAs($booking->planner)->post("/bookings/{$booking->id}/items", ['supplier_product_id' => $product->id, 'quantity' => 1])
+        $this->actingAs($booking->planner)->post("/bookings/{$booking->id}/items", ['supplier_product_id' => $product->id, 'quantity' => 1, 'due_date' => $booking->event_date->toDateString()])
             ->assertNotFound();
     }
 
@@ -123,5 +124,72 @@ class SupplierProductTest extends TestCase
 
         $this->actingAs($vendor)->get("/vendor/bookings/{$booking->id}")
             ->assertOk()->assertSee('My bouquet')->assertDontSee('Their cake');
+    }
+
+    public function test_planner_must_set_a_supplier_deadline_within_the_booking(): void
+    {
+        $booking = Booking::factory()->create(['event_date' => today()->addDays(30)]);
+        $supplierId = Supplier::factory()->create()->id;
+        $arch = SupplierProduct::create(['supplier_id' => $supplierId, 'name' => 'Arch', 'is_available' => true]);
+        $bouquet = SupplierProduct::create(['supplier_id' => $supplierId, 'name' => 'Bouquet', 'is_available' => true]);
+        $planner = $booking->planner;
+
+        // The form suggests the day before the wedding.
+        $this->actingAs($planner)->get("/bookings/{$booking->id}")->assertSee('value="'.today()->addDays(29)->toDateString().'"', false);
+
+        foreach (['', today()->subDay()->toDateString(), today()->addDays(31)->toDateString()] as $invalid) {
+            $this->actingAs($planner)->post("/bookings/{$booking->id}/items", ['supplier_product_id' => $arch->id, 'quantity' => 1, 'due_date' => $invalid])
+                ->assertSessionHasErrors('due_date');
+        }
+
+        $this->actingAs($planner)->post("/bookings/{$booking->id}/items", ['supplier_product_id' => $arch->id, 'quantity' => 1, 'due_date' => today()->addDays(29)->toDateString()])
+            ->assertSessionHasNoErrors();
+        $this->actingAs($planner)->post("/bookings/{$booking->id}/items", ['supplier_product_id' => $bouquet->id, 'quantity' => 1, 'due_date' => today()->addDays(20)->toDateString()])
+            ->assertSessionHasNoErrors();
+
+        $items = $booking->bookingProducts()->get()->keyBy('supplier_product_id');
+        $this->assertTrue($items[$arch->id]->due_date->isSameDay(today()->addDays(29)));
+        $this->assertTrue($items[$bouquet->id]->due_date->isSameDay(today()->addDays(20)));
+
+        $this->actingAs($planner)->patch("/bookings/{$booking->id}/items/{$items[$arch->id]->id}", ['quantity' => 2, 'due_date' => today()->addDays(25)->toDateString()])
+            ->assertSessionHasNoErrors();
+        $this->assertTrue($items[$arch->id]->fresh()->due_date->isSameDay(today()->addDays(25)));
+    }
+
+    public function test_planner_sees_set_up_items_against_the_couples_budget_by_category(): void
+    {
+        $booking = Booking::factory()->create();
+        $budget = ClientBudget::create(['user_id' => $booking->client_id, 'total_amount' => 100000]);
+        $budget->allocations()->create(['category' => 'Cakes', 'amount' => 20000]);
+
+        $baker = Supplier::factory()->create(['category' => 'Cakes']);
+        $cake = SupplierProduct::create(['supplier_id' => $baker->id, 'name' => '3-tier cake', 'price' => 15000, 'is_available' => true]);
+        SupplierProduct::create(['supplier_id' => $baker->id, 'name' => 'Dessert table', 'price' => 12000, 'is_available' => true]);
+        SupplierProduct::create(['supplier_id' => $baker->id, 'name' => 'Cupcake tower', 'price' => 4000, 'is_available' => true]);
+        $booking->bookingProducts()->create(['supplier_product_id' => $cake->id, 'quantity' => 1, 'unit_price' => 15000]);
+
+        $this->actingAs($booking->planner)->get("/bookings/{$booking->id}")
+            ->assertOk()
+            ->assertSee('By category · picked vs. budget')
+            ->assertSee('₱5,000 left', false)
+            ->assertSee('₱5,000 left in budget', false)
+            ->assertSee('Dessert table (₱12,000.00) · over budget', false)
+            ->assertDontSee('Cupcake tower (₱4,000.00) · over budget', false);
+    }
+
+    public function test_vendor_sees_ready_by_deadlines_for_their_orders(): void
+    {
+        [$vendor, $supplier] = $this->vendorWithSupplier();
+        $booking = Booking::factory()->create(['event_date' => today()->addDays(30)]);
+        $booking->bookingSuppliers()->create(['supplier_id' => $supplier->id, 'status' => 'confirmed']);
+        $product = SupplierProduct::create(['supplier_id' => $supplier->id, 'name' => 'My bouquet', 'is_available' => true]);
+        $booking->bookingProducts()->create(['supplier_product_id' => $product->id, 'quantity' => 3, 'due_date' => today()->addDays(5)]);
+        $readyBy = today()->addDays(5);
+
+        $this->actingAs($vendor)->get("/vendor/bookings/{$booking->id}")
+            ->assertOk()->assertSee('Ready by')->assertSee($readyBy->format('D, M j, Y'))->assertSee('Due in 5 days');
+
+        $this->actingAs($vendor)->get('/vendor')
+            ->assertOk()->assertSee('Products to prepare')->assertSee('My bouquet')->assertSee($readyBy->format('M j, Y'));
     }
 }

@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
@@ -58,9 +59,15 @@ class Booking extends Model
             ->withTimestamps();
     }
 
+    /** The couple's favorite suppliers (saved on their account). */
     public function preferences(): HasMany
     {
-        return $this->hasMany(SupplierPreference::class);
+        return $this->hasMany(SupplierPreference::class, 'user_id', 'client_id');
+    }
+
+    public function portfolioEntry(): HasOne
+    {
+        return $this->hasOne(PortfolioEntry::class);
     }
 
     /** Vendor products the planner selected for this wedding's set-up. */

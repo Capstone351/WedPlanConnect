@@ -8,6 +8,7 @@
         ['Inventory', 'inventory.index', 'inventory.*', 'cube'],
         ['Payments', 'payments.index', 'payments.*', 'cash'],
         ['Reports', 'reports.index', 'reports.*', 'chart'],
+        ['Portfolio', 'portfolio.index', 'portfolio.*', 'heart'],
     ];
     // Shown only while emails are not really delivered (MAIL_MAILER=log).
     $testTools = \App\Models\OutboxMessage::enabled()
@@ -38,6 +39,9 @@
         default => [
             '' => [
                 ['My Wedding', 'client.dashboard', 'client.dashboard', 'heart'],
+                ['Wedding Date', 'client.wedding-date', 'client.wedding-date*', 'calendar'],
+                ['My Planner', 'client.planner', 'client.planner*', 'user'],
+                ['My Budget', 'client.budget', 'client.budget*', 'cash'],
                 ['Supplier Catalog', 'client.catalog', 'client.catalog*', 'store'],
             ],
         ],

@@ -42,8 +42,8 @@ class DemoSeeder extends Seeder
         ])->map(fn ($c) => $user('client', ...$c));
 
         $this->seedSuppliers();
-        $vendor = $user('vendor', 'Bloom & Petal Florals', 'vendor@fmtweddings.test', '+639201112222');
-        Supplier::where('name', 'Bloom & Petal Florals')->update(['user_id' => $vendor->id]);
+        $vendor = $user('vendor', 'Lorr Aljas', 'vendor@fmtweddings.test', '+639201112222');
+        Supplier::where('name', 'Lorr Aljas')->update(['user_id' => $vendor->id]);
 
         $this->seedInventory();
         $this->seedFaqs();
@@ -87,6 +87,9 @@ class DemoSeeder extends Seeder
         ]);
 
         $this->call(DemoProductsSeeder::class);
+        $this->call(DemoPortfolioSeeder::class);
+        $this->call(DemoBudgetSeeder::class);
+        $this->call(DemoPlannerChoiceSeeder::class);
     }
 
     private function seedBookingDetails(Booking $booking, int $days, string $status): void
@@ -121,25 +124,25 @@ class DemoSeeder extends Seeder
         }
 
         $picks = [
-            'Florist' => 'Bloom & Petal Florals',
-            'Photographer' => 'Lumière Studio Cebu',
-            'Caterer' => 'Casa Verde Catering',
-            'Lights & Sounds' => 'Soundwave Events Cebu',
-            'Hair & Makeup' => 'Glam Squad by Rica',
-            'Cake' => 'Sugar & Lace Cakes',
+            'Event Styling' => 'Lorr Aljas',
+            'Photo & Video' => 'Bethoven Photography',
+            'Entourage Dress(es)' => 'Belly Jane',
+            'Lights & Sounds' => 'Scarlet Lights and Sounds Mobile',
+            'Hair & Make-up Artists' => 'Paul Flores & Team',
+            'Cakes' => "Victoria's",
         ];
 
         if ($status === 'pending') {
             // Pending bookings: client preferences only, awaiting planner review.
-            foreach (['Florist', 'Photographer', 'Cake'] as $cat) {
-                SupplierPreference::create(['booking_id' => $booking->id, 'supplier_id' => Supplier::where('name', $picks[$cat])->value('id')]);
+            foreach (['Event Styling', 'Photo & Video', 'Cakes'] as $cat) {
+                SupplierPreference::firstOrCreate(['user_id' => $booking->client_id, 'booking_id' => $booking->id, 'supplier_id' => Supplier::where('name', $picks[$cat])->value('id')]);
             }
         } else {
             $statuses = $done ? array_fill(0, 6, 'confirmed') : ['confirmed', 'confirmed', 'confirmed', 'contacted', 'pending', 'confirmed'];
             foreach (array_values($picks) as $i => $name) {
                 BookingSupplier::create(['booking_id' => $booking->id, 'supplier_id' => Supplier::where('name', $name)->value('id'), 'status' => $statuses[$i]]);
             }
-            SupplierPreference::create(['booking_id' => $booking->id, 'supplier_id' => Supplier::where('name', $picks['Florist'])->value('id')]);
+            SupplierPreference::firstOrCreate(['user_id' => $booking->client_id, 'booking_id' => $booking->id, 'supplier_id' => Supplier::where('name', $picks['Event Styling'])->value('id')]);
         }
 
         $amount = (float) $booking->total_amount;
@@ -161,30 +164,26 @@ class DemoSeeder extends Seeder
 
     private function seedSuppliers(): void
     {
+        // FMT Weddings & Events' actual supplier and vendor network.
         $suppliers = [
-            ['Bloom & Petal Florals', 'Florist', 'Fresh and preserved floral arrangements, bridal bouquets, arches, and aisle décor.', 35000],
-            ['Mactan Blooms', 'Florist', 'Tropical-inspired floral styling for beach and garden weddings.', 28000],
-            ['Lumière Studio Cebu', 'Photographer', 'Documentary-style wedding photography with same-day edit prints.', 45000],
-            ['Kodak Moments PH', 'Photographer', 'Classic and editorial photo coverage, prenup shoots included.', 38000],
-            ['Frame by Frame Films', 'Videographer', 'Cinematic wedding films and same-day edit videos.', 50000],
-            ['Casa Verde Catering', 'Caterer', 'Filipino-fusion buffet and plated dinners for 100–500 guests.', 90000],
-            ['Lechon Republic Events', 'Caterer', 'Famous Cebu lechon packages and grazing tables.', 60000],
-            ['Soundwave Events Cebu', 'Lights & Sounds', 'Full lights & sounds setup, LED walls, and technical crew.', 40000],
-            ['Glam Squad by Rica', 'Hair & Makeup', 'Bridal and entourage hair & makeup, trial session included.', 25000],
-            ['Sugar & Lace Cakes', 'Cake', 'Multi-tier wedding cakes and dessert tables.', 18000],
-            ['The Gown Atelier', 'Gowns & Suits', 'Made-to-order bridal gowns and suit rentals.', 55000],
-            ['MC Jon Events', 'Host / Emcee', 'Bilingual wedding host and program coordinator.', 15000],
-            ['Acoustic Soul Band', 'Band / Musicians', 'Live acoustic band for ceremony and reception.', 30000],
-            ['Casa Gorordo Museum', 'Venue', 'Heritage garden venue in Parian, Cebu City.', 80000],
+            'Coordination' => ['FMT Events by Randy Paredes Pilar'],
+            'Hair & Make-up Artists' => ['Paul Flores & Team', 'Bhocnoii Zuñiga & Team', 'Louie Ybañez', 'Ruben'],
+            'Photo & Video' => ['Bethoven Photography', 'Sugbo Films', 'Joseph Candido', 'Brylle Dignos'],
+            'Lights & Sounds' => ['Scarlet Lights and Sounds Mobile'],
+            'Event Styling' => ['FMT', 'Tonnette Revalde', 'Lorr Aljas'],
+            'Cakes' => ["Victoria's", 'Nanay Daisy', 'Tangerine Kitchen'],
+            'Entourage Dress(es)' => ['Belly Jane', 'NGRP', 'Bridal City'],
         ];
 
-        foreach ($suppliers as $i => [$name, $category, $description, $price]) {
-            Supplier::create([
-                'name' => $name, 'category' => $category, 'description' => $description, 'starting_price' => $price,
-                'phone' => '+63920'.str_pad((string) (1000000 + $i * 7919), 7, '0', STR_PAD_LEFT),
-                'email' => strtolower(preg_replace('/[^a-z0-9]+/i', '', $name)).'@example.com',
-                'availability' => $name === 'Kodak Moments PH' ? 'unavailable' : 'available',
-            ]);
+        $i = 0;
+        foreach ($suppliers as $category => $names) {
+            foreach ($names as $name) {
+                Supplier::create([
+                    'name' => $name, 'category' => $category, 'availability' => 'available',
+                    // Placeholder number: replace with the supplier's real contact in Supplier Management.
+                    'phone' => '+63920'.str_pad((string) (1000000 + $i++ * 7919), 7, '0', STR_PAD_LEFT),
+                ]);
+            }
         }
     }
 

@@ -1,21 +1,31 @@
 <x-layouts.auth title="Create account">
-    <h1 class="font-display text-3xl font-semibold">Create your client account</h1>
-    <p class="mt-1 text-sm text-stone-500">For engaged couples working with {{ config('wedplan.business_name') }}.</p>
+    <h1 class="font-display text-3xl font-semibold">Create your account</h1>
+    <p class="mt-1 text-sm text-stone-500">Plan your wedding with {{ config('wedplan.business_name') }}.</p>
 
     <form method="POST" action="{{ route('register') }}" class="mt-8 space-y-4">
         @csrf
         <div>
-            <label for="name" class="label">Full name(s)</label>
-            <input id="name" name="name" value="{{ old('name') }}" required maxlength="150" placeholder="e.g. Ana & Miguel Santos" class="input">
+            <label for="name" class="label">Full name</label>
+            <input id="name" name="name" value="{{ old('name') }}" required maxlength="150" autocomplete="name" placeholder="e.g. Ana Santos"
+                @class(['input', 'input-error' => $errors->has('name')])>
+            @error('name')<p class="error-text">{{ $message }}</p>@else<p class="hint">One person per account.</p>@enderror
         </div>
         <div class="grid gap-4 sm:grid-cols-2">
             <div>
-                <label for="email" class="label">Email</label>
-                <input id="email" name="email" type="email" value="{{ old('email') }}" required maxlength="150" autocomplete="email" class="input">
+                <label for="email" class="label">Gmail address</label>
+                <input id="email" name="email" type="email" value="{{ old('email') }}" required maxlength="150" autocomplete="email"
+                    placeholder="yourname@gmail.com" pattern="[A-Za-z0-9.+_\-]+@[Gg][Mm][Aa][Ii][Ll]\.[Cc][Oo][Mm]"
+                    title="Use a Gmail address ending in @gmail.com"
+                    @class(['input', 'input-error' => $errors->has('email')])>
+                @error('email')<p class="error-text">{{ $message }}</p>@else<p class="hint">Must end with @gmail.com</p>@enderror
             </div>
             <div>
-                <label for="phone" class="label">Mobile number <span class="font-normal text-stone-400">(optional)</span></label>
-                <input id="phone" name="phone" value="{{ old('phone') }}" maxlength="20" placeholder="+639171234567" class="input">
+                <label for="phone" class="label">Mobile number</label>
+                <input id="phone" name="phone" type="tel" value="{{ old('phone') }}" required inputmode="numeric" maxlength="11" minlength="11"
+                    pattern="09[0-9]{9}" autocomplete="tel" placeholder="09171234567" data-digits-only
+                    title="Must start with 09 and have 11 digits, e.g. 09171234567"
+                    @class(['input', 'input-error' => $errors->has('phone')])>
+                @error('phone')<p class="error-text">{{ $message }}</p>@else<p class="hint">Starts with 09, 11 digits, e.g. 09171234567</p>@enderror
             </div>
         </div>
         <div class="grid gap-4 sm:grid-cols-2">

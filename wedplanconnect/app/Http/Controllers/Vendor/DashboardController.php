@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Vendor;
 
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
+use App\Models\BookingProduct;
 use App\Models\BookingSupplier;
 use App\Models\Supplier;
 use Illuminate\Http\RedirectResponse;
@@ -29,6 +30,7 @@ class DashboardController extends Controller
             'supplier' => $supplier,
             'next' => $upcoming->first(),
             'assignments' => $upcoming,
+            'deadlines' => $supplier ? $this->openOrders($supplier) : collect(),
             'counts' => [
                 'active' => $assignments->filter(fn ($a) => in_array($a->booking->status, Booking::ACTIVE_STATUSES))->count(),
                 'upcoming' => $upcoming->count(),
@@ -60,7 +62,7 @@ class DashboardController extends Controller
             'booking' => $booking->load('planner:id,name,email,phone'),
             'assignment' => $assignment,
             // Only this vendor's own products ordered for the wedding.
-            'items' => $booking->bookingProducts()->whereHas('product', fn ($q) => $q->withTrashed()->where('supplier_id', $supplier->id))->with('product')->get(),
+            'items' => $booking->bookingProducts()->whereHas('product', fn ($q) => $q->withTrashed()->where('supplier_id', $supplier->id))->with('product')->orderBy('due_date')->get(),
         ]);
     }
 
@@ -83,6 +85,16 @@ class DashboardController extends Controller
     private function supplier(Request $request): ?Supplier
     {
         return $request->user()->supplierProfile;
+    }
+
+    /** Ordered products still to prepare for upcoming active weddings, earliest deadline first. */
+    private function openOrders(Supplier $supplier)
+    {
+        return BookingProduct::whereHas('product', fn ($q) => $q->withTrashed()->where('supplier_id', $supplier->id))
+            ->whereHas('booking', fn ($q) => $q->withoutTrashed()->upcoming())
+            ->with(['product', 'booking:id,client_name,event_date'])
+            ->orderBy('due_date')
+            ->get();
     }
 
     private function assignments(Supplier $supplier)
