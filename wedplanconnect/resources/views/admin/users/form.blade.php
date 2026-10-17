@@ -34,6 +34,10 @@
                 </select>
                 <p class="hint">Vendors see only bookings their supplier profile is assigned to.</p>
             </div>
+            <div class="sm:col-span-2">
+                <label for="bio" class="label">Short introduction <span class="font-normal text-stone-400">(Wedding Planners only)</span></label>
+                <textarea id="bio" name="bio" rows="2" maxlength="500" class="input" placeholder="Shown to couples when they choose their planner, e.g. 10 years styling garden and ballroom weddings in Cebu.">{{ old('bio', $user->bio) }}</textarea>
+            </div>
             <div>
                 <label for="password" class="label">{{ $editing ? 'New password' : 'Password' }}</label>
                 <input id="password" name="password" type="password" @required(! $editing) autocomplete="new-password" class="input">

@@ -54,9 +54,23 @@ class BookingController extends Controller
         return view('bookings.index', compact('bookings', 'stats'));
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
-        return view('bookings.form', $this->formData(new Booking(['status' => 'pending'])));
+        $booking = new Booking(['status' => 'pending']);
+
+        // "Create booking" from a couple who chose a planner: pre-fill the couple and their chosen planner.
+        if ($client = User::where('role', 'client')->find($request->integer('client_id'))) {
+            $booking->fill([
+                'client_id' => $client->id,
+                'client_name' => $client->name,
+                'contact_number' => $client->phone,
+                'planner_id' => $client->preferred_planner_id,
+                'event_date' => $client->wedding_date?->isFuture() ? $client->wedding_date : null,
+                'venue' => $client->wedding_venue,
+            ]);
+        }
+
+        return view('bookings.form', $this->formData($booking));
     }
 
     public function store(Request $request): RedirectResponse
@@ -90,9 +104,13 @@ class BookingController extends Controller
         ]);
 
         $assignedIds = $booking->bookingSuppliers->pluck('supplier_id');
+        $budget = $booking->client?->budget()->with('allocations')->first();
 
         return view('bookings.show', [
             'booking' => $booking,
+            // The couple's budget, so suppliers and products can be picked to fit it.
+            'budget' => $budget,
+            'budgetByCategory' => $budget?->byCategory($booking->bookingProducts) ?? collect(),
             'availableSuppliers' => Supplier::whereNotIn('id', $assignedIds)->orderBy('category')->orderBy('name')->get(),
             // Products the planner can add to the set-up, grouped by supplier in the view.
             'selectableProducts' => SupplierProduct::selectable()->with('supplier:id,name,category')
@@ -223,7 +241,7 @@ class BookingController extends Controller
     {
         return [
             'booking' => $booking,
-            'clients' => User::where('role', 'client')->orderBy('name')->get(['id', 'name', 'email', 'phone']),
+            'clients' => User::where('role', 'client')->with('preferredPlanner:id,name')->orderBy('name')->get(['id', 'name', 'email', 'phone', 'preferred_planner_id', 'wedding_date', 'wedding_date_alt', 'wedding_venue']),
             'planners' => User::where('role', 'planner')->orderBy('name')->get(['id', 'name']),
             'packages' => ['Classic Elegance', 'Garden Romance', 'Rustic Charm', 'Grand Ballroom', 'Beach Wedding', 'Intimate Ceremony', 'Custom Package'],
         ];

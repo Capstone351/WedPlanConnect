@@ -6,9 +6,12 @@ use App\Models\Booking;
 use App\Models\ChatbotSession;
 use App\Models\Faq;
 use App\Models\InventoryItem;
+use App\Models\Supplier;
 use App\Models\Task;
 use App\Models\User;
+use App\Services\ReportService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 /**
@@ -112,13 +115,26 @@ class OperationsTest extends TestCase
         $this->assertSame(1, ChatbotSession::whereNull('faq_id')->where('api_used', false)->count());
     }
 
+    public function test_chatbot_uses_backup_gemini_model_and_returns_plain_text(): void
+    {
+        config(['wedplan.chatbot.gemini_key' => 'test-key', 'wedplan.chatbot.gemini_model' => 'main', 'wedplan.chatbot.gemini_backup_model' => 'backup']);
+        Http::fake([
+            '*/models/main:*' => Http::response(['error' => ['message' => 'high demand']], 503),
+            '*/models/backup:*' => Http::response(['candidates' => [['content' => ['parts' => [['text' => "Try **coral** and *white*:\n* Sunset tones"]]]]]]),
+        ]);
+        Supplier::factory()->create(['category' => 'Entourage Dress(es)', 'availability' => 'available']);
+
+        $this->postJson('/chatbot/ask', ['message' => 'What colors suit a beach wedding?'])
+            ->assertOk()->assertExactJson(['source' => 'ai', 'answer' => "Try coral and white:\n• Sunset tones"]);
+    }
+
     public function test_reports_respect_role_scope(): void
     {
         $admin = User::factory()->admin()->create();
         $planner = User::factory()->planner()->create();
         Booking::factory()->create(['planner_id' => $planner->id]);
 
-        foreach (array_keys(\App\Services\ReportService::TYPES) as $type) {
+        foreach (array_keys(ReportService::TYPES) as $type) {
             $this->actingAs($admin)->get("/reports/{$type}")->assertOk();
         }
 

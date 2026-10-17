@@ -6,13 +6,14 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['role', 'name', 'email', 'phone', 'password'])]
+#[Fillable(['role', 'name', 'email', 'phone', 'password', 'bio'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -37,6 +38,8 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'locked_until' => 'datetime',
             'last_login_at' => 'datetime',
+            'wedding_date' => 'date',
+            'wedding_date_alt' => 'date',
             'password' => 'hashed',
         ];
     }
@@ -84,6 +87,30 @@ class User extends Authenticatable
     public function supplierProfile(): HasOne
     {
         return $this->hasOne(Supplier::class);
+    }
+
+    /** A couple-client's favorite suppliers from the catalog. */
+    public function favoriteSuppliers(): HasMany
+    {
+        return $this->hasMany(SupplierPreference::class, 'user_id');
+    }
+
+    /** The Wedding Planner a couple-client chose. */
+    public function preferredPlanner(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'preferred_planner_id')->withTrashed();
+    }
+
+    /** Couples who chose this planner. */
+    public function clientsWhoChoseMe(): HasMany
+    {
+        return $this->hasMany(User::class, 'preferred_planner_id');
+    }
+
+    /** A couple-client's own wedding budget. */
+    public function budget(): HasOne
+    {
+        return $this->hasOne(ClientBudget::class);
     }
 
     public function dashboardRoute(): string

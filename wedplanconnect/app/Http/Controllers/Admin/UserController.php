@@ -110,6 +110,7 @@ class UserController extends Controller
             'role' => ['required', Rule::in(array_keys(User::ROLES))],
             'password' => [$user ? 'nullable' : 'required', 'confirmed', Password::min(8)->letters()->numbers()],
             'supplier_id' => ['nullable', 'exists:suppliers,id'],
+            'bio' => ['nullable', 'string', 'max:500'],
         ]), 'supplier_id');
     }
 
@@ -129,4 +130,4 @@ class UserController extends Controller
             Supplier::whereKey($supplierId)->update(['user_id' => $user->id]);
         }
     }
-}       
+}

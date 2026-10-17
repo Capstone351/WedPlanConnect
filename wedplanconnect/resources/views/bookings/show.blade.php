@@ -20,6 +20,12 @@
                 @csrf @method('PATCH')
                 <button class="btn-secondary">Mark completed</button>
             </form>
+        @elseif ($booking->status === 'completed')
+            @if ($booking->portfolioEntry)
+                <a href="{{ route('portfolio.edit', $booking->portfolioEntry) }}" class="btn-outline"><x-icon name="heart" class="size-4" /> Portfolio entry</a>
+            @else
+                <a href="{{ route('portfolio.create', ['booking_id' => $booking->id]) }}" class="btn-gold"><x-icon name="heart" class="size-4" /> Add to portfolio</a>
+            @endif
         @endif
         @if ($active)
             <form method="POST" action="{{ route('bookings.cancel', $booking) }}" data-confirm="Cancel this booking? Its QR code will stop working.">
@@ -129,7 +135,12 @@
                             @csrf
                             @foreach ($availableSuppliers->groupBy('category') as $category => $group)
                                 <div>
-                                    <div class="mb-1.5 text-xs font-semibold tracking-wide text-stone-500 uppercase">{{ $category }}</div>
+                                    <div class="mb-1.5 flex items-baseline justify-between gap-3">
+                                        <span class="text-xs font-semibold tracking-wide text-stone-500 uppercase">{{ $category }}</span>
+                                        @if ($budgetByCategory[$category]['allocated'] ?? null)
+                                            <span class="text-xs text-stone-500">Client budget ₱{{ number_format($budgetByCategory[$category]['allocated'], 0) }}</span>
+                                        @endif
+                                    </div>
                                     <div class="grid gap-2 sm:grid-cols-2">
                                         @foreach ($group as $s)
                                             @php $preferred = $booking->preferences->contains('supplier_id', $s->id); @endphp
@@ -157,6 +168,11 @@
                 $items = $booking->bookingProducts;
                 $itemsTotal = $items->sum(fn ($i) => $i->subtotal() ?? 0);
                 $preferredSupplierIds = $booking->preferences->pluck('supplier_id');
+                $overallLeft = $budget ? round((float) $budget->total_amount - $itemsTotal, 2) : null;
+                $categoryLeft = $budgetByCategory->whereNotNull('remaining')->map(fn ($row) => $row['remaining']);
+                // A product doesn't fit if one unit costs more than what's left in its category or overall.
+                $fits = fn ($p) => $p->price === null || collect([$categoryLeft->get($p->supplier->category), $overallLeft])
+                    ->filter(fn ($left) => $left !== null)->every(fn ($left) => (float) $p->price <= $left);
             @endphp
             <div class="card scroll-mt-6" id="setup">
                 <div class="card-header">
@@ -165,7 +181,7 @@
                 </div>
                 <div class="overflow-x-auto">
                     <table class="table">
-                        <thead><tr><th>Item</th><th>Supplier</th><th class="text-right">Qty</th><th class="text-right">Subtotal</th><th></th></tr></thead>
+                        <thead><tr><th>Item</th><th>Supplier</th><th>Supplier deadline</th><th class="text-right">Qty</th><th class="text-right">Subtotal</th><th></th></tr></thead>
                         <tbody>
                             @forelse ($items as $item)
                                 <tr>
@@ -179,6 +195,18 @@
                                         </div>
                                     </td>
                                     <td>{{ $item->product->supplier->name }}<div class="text-xs text-stone-500">{{ $item->product->supplier->category }}</div></td>
+                                    <td class="whitespace-nowrap">
+                                        @if ($active)
+                                            <form method="POST" action="{{ route('bookings.items.update', [$booking, $item]) }}">
+                                                @csrf @method('PATCH')
+                                                <input type="hidden" name="quantity" value="{{ $item->quantity }}">
+                                                <input type="hidden" name="notes" value="{{ $item->notes }}">
+                                                <input name="due_date" type="date" required max="{{ $booking->event_date->toDateString() }}" value="{{ $item->due_date?->toDateString() }}" class="input w-36 py-1 text-xs" aria-label="Ready-by date for {{ $item->product->name }}" onchange="this.form.submit()">
+                                            </form>
+                                        @else
+                                            {{ $item->due_date?->format('M j, Y') ?? '—' }}
+                                        @endif
+                                    </td>
                                     <td class="text-right">
                                         @if ($active)
                                             <form method="POST" action="{{ route('bookings.items.update', [$booking, $item]) }}" class="flex justify-end">
@@ -201,22 +229,24 @@
                                     </td>
                                 </tr>
                             @empty
-                                <tr><td colspan="5" class="py-6 text-center text-stone-500">No vendor products selected yet.</td></tr>
+                                <tr><td colspan="6" class="py-6 text-center text-stone-500">No vendor products selected yet.</td></tr>
                             @endforelse
                         </tbody>
                     </table>
                 </div>
                 @if ($active)
-                    <form method="POST" action="{{ route('bookings.items.store', $booking) }}" class="flex flex-wrap items-end gap-3 border-t border-stone-100 p-4">
+                    <form method="POST" action="{{ route('bookings.items.store', $booking) }}" class="flex flex-wrap items-end gap-3 border-t border-stone-100 p-4"
+                        @if ($budget) data-setup-budget="{{ json_encode(['overall' => $overallLeft, 'categories' => $categoryLeft]) }}" @endif>
                         @csrf
                         <div class="min-w-60 flex-1">
                             <label class="label" for="supplier_product_id">Add a product</label>
                             <select id="supplier_product_id" name="supplier_product_id" required class="input">
                                 <option value="">Choose from vendor offerings…</option>
-                                @foreach ($selectableProducts->groupBy(fn ($p) => $p->supplier->category.' · '.$p->supplier->name.($preferredSupplierIds->contains($p->supplier_id) ? ' ★ client preference' : '')) as $group => $products)
+                                @foreach ($selectableProducts->groupBy(fn ($p) => $p->supplier->category.' · '.$p->supplier->name.($preferredSupplierIds->contains($p->supplier_id) ? ' ★ client preference' : '')
+                                    .($categoryLeft->has($p->supplier->category) ? ' · ₱'.number_format(max(0, $categoryLeft[$p->supplier->category]), 0).' left in budget' : '')) as $group => $products)
                                     <optgroup label="{{ $group }}">
                                         @foreach ($products as $p)
-                                            <option value="{{ $p->id }}">{{ $p->name }} ({{ $p->priceLabel() }})</option>
+                                            <option value="{{ $p->id }}" data-price="{{ $p->price }}" data-category="{{ $p->supplier->category }}">{{ $p->name }} ({{ $p->priceLabel() }}){{ $fits($p) ? '' : ' · over budget' }}</option>
                                         @endforeach
                                     </optgroup>
                                 @endforeach
@@ -226,12 +256,19 @@
                             <label class="label" for="quantity">Qty</label>
                             <input id="quantity" name="quantity" type="number" min="1" value="1" required class="input w-20">
                         </div>
+                        <div>
+                            <label class="label" for="due_date">Supplier deadline</label>
+                            <input id="due_date" name="due_date" type="date" required min="{{ today()->toDateString() }}" max="{{ $booking->event_date->toDateString() }}" value="{{ old('due_date', \App\Models\BookingProduct::suggestedDueDate($booking)->toDateString()) }}" class="input w-40">
+                        </div>
                         <div class="min-w-40 flex-1">
                             <label class="label" for="item_notes">Notes</label>
                             <input id="item_notes" name="notes" maxlength="255" class="input" placeholder="e.g. blush & ivory">
                         </div>
                         <button class="btn-primary">Add</button>
-                        <p class="hint w-full">Adding a product also assigns its vendor to this booking. The estimate is for planning only. The contract amount is set separately.</p>
+                        @if ($budget)
+                            <p class="hidden w-full rounded-lg px-3 py-2 text-xs ring-1" data-setup-hint></p>
+                        @endif
+                        <p class="hint w-full">Set when the supplier must have the product ready. They see this deadline in their portal so they can prepare the order. Adding a product also assigns its vendor to this booking. The estimate is for planning only. The contract amount is set separately.</p>
                     </form>
                 @endif
             </div>
@@ -272,6 +309,102 @@
         </div>
 
         <div class="space-y-6">
+            {{-- The couple's own budget, compared with the contract and selected set-up items --}}
+            @php
+                $setupEstimate = $booking->bookingProducts->sum(fn ($i) => $i->subtotal() ?? 0);
+            @endphp
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Client budget</h2>
+                    @if ($budget)<span class="text-xs text-stone-500">updated {{ $budget->updated_at->diffForHumans() }}</span>@endif
+                </div>
+                @if (! $budget)
+                    <div class="card-body text-sm text-stone-500">
+                        The couple hasn't set a budget yet. They can add it under <strong>My Budget</strong> when they log in.
+                    </div>
+                @else
+                    @php
+                        $limit = (float) $budget->total_amount;
+                        $rows = [
+                            ['Contract amount', (float) $booking->total_amount],
+                            ['Selected set-up items', $setupEstimate],
+                        ];
+                    @endphp
+                    <div class="card-body space-y-4 text-sm">
+                        <div class="flex items-end justify-between gap-3">
+                            <div>
+                                <div class="text-[11px] font-semibold tracking-[0.14em] text-gold-700 uppercase">Total budget</div>
+                                <div class="font-display text-3xl font-semibold tabular-nums">₱{{ number_format($limit, 0) }}</div>
+                            </div>
+                            @if ($budget->guest_count)
+                                <div class="text-right text-xs text-stone-500">
+                                    <div class="text-base font-semibold text-ink">{{ number_format($budget->guest_count) }} guests</div>
+                                    ≈ ₱{{ number_format($budget->perGuest(), 0) }} per guest
+                                </div>
+                            @endif
+                        </div>
+
+                        <div class="space-y-2.5">
+                            @foreach ($rows as [$label, $amount])
+                                @php $pct = $limit > 0 ? $amount / $limit * 100 : 0; @endphp
+                                <div>
+                                    <div class="flex justify-between text-xs">
+                                        <span class="text-stone-600">{{ $label }}</span>
+                                        <span @class(['font-semibold tabular-nums', 'text-red-600' => $amount > $limit])>₱{{ number_format($amount, 0) }} · {{ round($pct) }}%</span>
+                                    </div>
+                                    <div class="mt-1 h-1.5 rounded-full bg-stone-100">
+                                        <div @class(['h-1.5 rounded-full', 'bg-red-500' => $amount > $limit, 'bg-gold-400' => $amount <= $limit]) style="width: {{ min(100, $pct) }}%"></div>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+
+                        @if ((float) $booking->total_amount > $limit)
+                            <p class="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700 ring-1 ring-red-200">The contract is ₱{{ number_format((float) $booking->total_amount - $limit, 0) }} over the couple's budget.</p>
+                        @elseif ($setupEstimate > $limit)
+                            <p class="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 ring-1 ring-amber-200">Selected items are ₱{{ number_format($setupEstimate - $limit, 0) }} over the couple's budget.</p>
+                        @endif
+
+                        @if ($budgetByCategory->isNotEmpty())
+                            <div>
+                                <div class="mb-2 text-[11px] font-semibold tracking-[0.14em] text-gold-700 uppercase">By category · picked vs. budget</div>
+                                <ul class="space-y-2.5 text-xs">
+                                    @foreach ($budgetByCategory as $row)
+                                        @php $over = $row['remaining'] !== null && $row['remaining'] < 0; @endphp
+                                        <li>
+                                            <div class="flex justify-between gap-3">
+                                                <span class="text-stone-600">{{ $row['category'] }}</span>
+                                                <span @class(['tabular-nums', 'font-semibold text-red-600' => $over])>
+                                                    ₱{{ number_format($row['selected'], 0) }}
+                                                    <span class="font-normal text-stone-400">/ {{ $row['allocated'] !== null ? '₱'.number_format($row['allocated'], 0) : 'no budget set' }}</span>
+                                                </span>
+                                            </div>
+                                            @if ($row['allocated'])
+                                                <div class="mt-1 h-1.5 rounded-full bg-stone-100">
+                                                    <div @class(['h-1.5 rounded-full', 'bg-red-500' => $over, 'bg-gold-400' => ! $over]) style="width: {{ min(100, $row['selected'] / $row['allocated'] * 100) }}%"></div>
+                                                </div>
+                                                <div @class(['mt-0.5 text-right', 'text-red-600' => $over, 'text-stone-500' => ! $over])>
+                                                    {{ $over ? '₱'.number_format(-$row['remaining'], 0).' over' : '₱'.number_format($row['remaining'], 0).' left' }}
+                                                </div>
+                                            @endif
+                                        </li>
+                                    @endforeach
+                                </ul>
+                                @if ($budget->unallocated() > 0)
+                                    <p class="mt-2 text-xs text-stone-500">₱{{ number_format($budget->unallocated(), 0) }} of their budget isn't assigned to a category.</p>
+                                @endif
+                            </div>
+                        @endif
+
+                        @if ($budget->notes)
+                            <blockquote class="rounded-lg bg-gold-50 px-3 py-2 text-xs text-stone-700 ring-1 ring-gold-200">
+                                <span class="font-semibold text-gold-700">Couple's note:</span> {{ $budget->notes }}
+                            </blockquote>
+                        @endif
+                    </div>
+                @endif
+            </div>
+
             {{-- QR code --}}
             <div class="card">
                 <div class="card-header"><h2 class="card-title">Client QR status code</h2></div>

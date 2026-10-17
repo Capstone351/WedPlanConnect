@@ -26,6 +26,20 @@ class ChatbotService
     ];
 
     /**
+     * Words that point to a supplier category. Explicit lists avoid
+     * false hits from category names, e.g. "suit" in "colors that suit a beach wedding".
+     */
+    private const CATEGORY_KEYWORDS = [
+        'Coordination' => ['coordinator', 'coordination', 'organizer'],
+        'Hair & Make-up Artists' => ['hair', 'makeup', 'hmua', 'glam'],
+        'Photo & Video' => ['photographer', 'photo', 'photography', 'videographer', 'video', 'videography', 'prenup', 'sde'],
+        'Lights & Sounds' => ['lighting', 'sound', 'audio'],
+        'Event Styling' => ['styling', 'stylist', 'decor', 'decoration', 'florist', 'flower', 'floral', 'bouquet'],
+        'Cakes' => ['cake'],
+        'Entourage Dress(es)' => ['gown', 'dress', 'entourage', 'bridesmaid', 'attire'],
+    ];
+
+    /**
      * @return array{answer: string, source: string, faq_id: int|null}
      */
     public function ask(string $question, ?int $userId = null): array
@@ -98,7 +112,7 @@ class ChatbotService
         $words = $this->tokens($question);
 
         $category = collect(Supplier::CATEGORIES)->first(function ($cat) use ($words) {
-            return $this->tokens($cat)->intersect($words)->isNotEmpty();
+            return $words->intersect($this->tokens(implode(' ', self::CATEGORY_KEYWORDS[$cat] ?? [$cat])))->isNotEmpty();
         });
 
         if (! $category) {
@@ -129,24 +143,45 @@ class ChatbotService
         $system = "You are WedBot, the assistant of {$business}, a wedding decoration company in Cebu City, Philippines. "
             .'Only answer questions about wedding planning, our services, and how to use the WedPlanConnect client portal. '
             .'Never invent prices, dates, or supplier commitments; refer those to the Wedding Planner. '
-            .'Keep answers under 90 words. If the question is out of scope, say so and suggest contacting the Wedding Planner.'
+            .'Keep answers under 90 words and write plain text only, with no Markdown formatting. If the question is out of scope, say so and suggest contacting the Wedding Planner.'
             ."\n\nKnown FAQ entries:\n".$context;
 
-        try {
-            $response = Http::timeout(12)
-                ->withHeaders(['x-goog-api-key' => $key])
-                ->post('https://generativelanguage.googleapis.com/v1beta/models/'.config('wedplan.chatbot.gemini_model').':generateContent', [
-                    'system_instruction' => ['parts' => [['text' => $system]]],
-                    'contents' => [['role' => 'user', 'parts' => [['text' => $question]]]],
-                ]);
+        // The backup model covers Google's temporary "high demand" (503) and rate-limit (429) errors.
+        $models = array_unique(array_filter([
+            config('wedplan.chatbot.gemini_model'),
+            config('wedplan.chatbot.gemini_backup_model'),
+        ]));
 
-            $text = $response->successful() ? $response->json('candidates.0.content.parts.0.text') : null;
+        foreach ($models as $model) {
+            try {
+                $response = Http::timeout(15)
+                    ->withHeaders(['x-goog-api-key' => $key])
+                    ->post("https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent", [
+                        'system_instruction' => ['parts' => [['text' => $system]]],
+                        'contents' => [['role' => 'user', 'parts' => [['text' => $question]]]],
+                    ]);
 
-            return $text ? trim($text) : null;
-        } catch (Throwable $e) {
-            Log::warning('Gemini fallback failed: '.$e->getMessage());
+                if ($text = $response->successful() ? $response->json('candidates.0.content.parts.0.text') : null) {
+                    return $this->plainText($text);
+                }
 
-            return null;
+                Log::warning("Gemini fallback failed ({$model}): HTTP {$response->status()} ".$response->json('error.message', ''));
+            } catch (Throwable $e) {
+                Log::warning("Gemini fallback failed ({$model}): ".$e->getMessage());
+            }
         }
+
+        return null;
+    }
+
+    /** Strips Markdown that the chat bubble would show literally; list markers become bullets. */
+    private function plainText(string $text): string
+    {
+        $text = preg_replace('/^\s*[*\-]\s+/m', '• ', $text);
+        $text = preg_replace('/^#+\s*/m', '', $text);
+        $text = preg_replace('/(\*\*|__)(.+?)\1/s', '$2', $text);
+        $text = preg_replace('/(?<![\w*])\*(?!\s)(.+?)(?<!\s)\*(?![\w*])/', '$1', $text);
+
+        return trim($text);
     }
 }

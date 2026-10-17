@@ -16,8 +16,8 @@ class Supplier extends Model
     use HasFactory, SoftDeletes;
 
     public const CATEGORIES = [
-        'Florist', 'Photographer', 'Videographer', 'Caterer', 'Venue',
-        'Lights & Sounds', 'Hair & Makeup', 'Cake', 'Gowns & Suits', 'Host / Emcee', 'Band / Musicians',
+        'Coordination', 'Hair & Make-up Artists', 'Photo & Video', 'Lights & Sounds',
+        'Event Styling', 'Cakes', 'Entourage Dress(es)',
     ];
 
     protected function casts(): array
