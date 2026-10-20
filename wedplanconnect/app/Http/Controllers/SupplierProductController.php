@@ -27,7 +27,7 @@ class SupplierProductController extends Controller
 
         return view('products.index', [
             'supplier' => $supplier,
-            'products' => $supplier->products()->withCount('bookingProducts')->orderByDesc('is_available')->orderBy('name')->get(),
+            'products' => $supplier->products()->withCount('bookingProducts')->withReserved()->orderByDesc('is_available')->orderBy('name')->get(),
             'ctx' => $this->context($request, $supplier),
         ]);
     }
@@ -134,13 +134,29 @@ class SupplierProductController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:150'],
             'description' => ['nullable', 'string', 'max:2000'],
+            'is_package' => ['boolean'],
+            'guest_capacity' => ['nullable', 'required_if_accepted:is_package', 'integer', 'min:1', 'max:5000'],
+            'inclusions' => ['nullable', 'string', 'max:2000'],
             'price' => ['nullable', 'numeric', 'min:0', 'max:99999999.99'],
             'unit' => ['nullable', 'string', 'max:30'],
+            'stock_quantity' => ['nullable', 'integer', 'min:0', 'max:1000000'],
+            'low_stock_threshold' => ['nullable', 'integer', 'min:0', 'max:10000'],
             'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
-        ], ['image.max' => 'The photo must be 2 MB or smaller.']);
+        ], [
+            'image.max' => 'The photo must be 2 MB or smaller.',
+            'guest_capacity.required_if_accepted' => 'Enter how many guests this package is good for.',
+        ]);
 
         unset($data['image']);
         $data['is_available'] = $request->boolean('is_available');
+        $data['is_package'] = $request->boolean('is_package');
+        $data['low_stock_threshold'] ??= 5;
+
+        // Guest count and inclusions only apply to packages.
+        if (! $data['is_package']) {
+            $data['guest_capacity'] = null;
+            $data['inclusions'] = null;
+        }
 
         return $data;
     }

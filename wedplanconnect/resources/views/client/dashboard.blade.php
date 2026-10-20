@@ -12,8 +12,16 @@
         @endphp
         <div class="hero-panel mb-6">
             <div class="relative px-6 py-8 text-center sm:px-10">
-                <div class="eyebrow text-gold-300">Get ready for your planner</div>
-                <h2 class="mt-2 font-display text-3xl font-semibold text-white">Let's start planning your wedding</h2>
+                @if ($me->coupleNames())
+                    <div class="eyebrow text-gold-300">The wedding of</div>
+                    <h2 class="mt-2 font-display text-4xl font-semibold tracking-tight text-white sm:text-5xl">{{ $me->coupleNames() }}</h2>
+                    <x-ornament class="mx-auto mt-4 w-56" :light="true" />
+                    <p class="mt-4 font-display text-xl text-gold-100">Let's start planning your wedding</p>
+                @else
+                    <div class="eyebrow text-gold-300">Get ready for your planner</div>
+                    <h2 class="mt-2 font-display text-3xl font-semibold text-white">Let's start planning your wedding</h2>
+                    <a href="{{ route('account.edit') }}" class="mt-2 inline-block text-sm text-gold-200 underline hover:text-white">Add the bride's and groom's names</a>
+                @endif
                 <p class="mx-auto mt-2 max-w-xl text-sm text-brand-100/85">Fill in these details. Your Wedding Planner sees them and uses them to create your booking. Your preparation progress will then appear here.</p>
                 <div class="mx-auto mt-5 h-2 max-w-sm overflow-hidden rounded-full bg-white/15">
                     <div class="h-2 rounded-full bg-gradient-to-r from-gold-300 to-gold-500" style="width: {{ $doneCount / count($ready) * 100 }}%"></div>
@@ -51,7 +59,7 @@
         <div class="hero-panel">
             <div class="relative flex flex-col items-center gap-6 px-6 pt-10 pb-8 text-center sm:px-10">
                 <div class="eyebrow text-gold-300">The wedding of</div>
-                <h2 class="font-display text-4xl font-semibold tracking-tight text-white sm:text-5xl">{{ $booking->client_name }}</h2>
+                <h2 class="font-display text-4xl font-semibold tracking-tight text-white sm:text-5xl">{{ auth()->user()->coupleNames() ?? $booking->client_name }}</h2>
                 <x-ornament class="w-56" :light="true" />
                 <div>
                     <p class="font-display text-lg text-gold-100">{{ $booking->event_date->format('l, F j, Y') }}</p>

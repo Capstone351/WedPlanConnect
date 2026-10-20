@@ -9,6 +9,7 @@ use App\Models\SupplierProduct;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Planner selects vendor products for a wedding's set-up. Selecting a product also
@@ -31,6 +32,7 @@ class BookingProductController extends Controller
         $product = SupplierProduct::selectable()->findOrFail($data['supplier_product_id']);
 
         $item = BookingProduct::firstOrNew(['booking_id' => $booking->id, 'supplier_product_id' => $product->id]);
+        $this->ensureInStock($product, $data['quantity'], $item);
         $item->fill([
             'quantity' => $data['quantity'],
             'due_date' => $data['due_date'],
@@ -40,7 +42,7 @@ class BookingProductController extends Controller
 
         $this->ensureSupplierAssigned($booking, $product->supplier_id);
 
-        return back()->with('status', "{$product->name} (×{$item->quantity}) added to this wedding's set-up.");
+        return back()->with('status', "{$product->name} (×{$item->quantity}) added to this wedding's set-up.".$this->reopenOrder($item));
     }
 
     public function update(Request $request, Booking $booking, BookingProduct $item): RedirectResponse
@@ -48,13 +50,16 @@ class BookingProductController extends Controller
         $this->authorizeBooking($booking);
         abort_unless($item->booking_id === $booking->id, 404);
 
-        $item->update($request->validate([
+        $data = $request->validate([
             'quantity' => ['required', 'integer', 'min:1', 'max:100000'],
             'due_date' => ['sometimes', 'required', ...$this->dueDateRules($booking)],
             'notes' => ['nullable', 'string', 'max:255'],
-        ], $this->dueDateMessages()));
+        ], $this->dueDateMessages());
 
-        return back()->with('status', "{$item->product->name} updated.");
+        $this->ensureInStock($item->product, $data['quantity'], $item);
+        $item->update($data);
+
+        return back()->with('status', "{$item->product->name} updated.".($item->wasChanged() ? $this->reopenOrder($item) : ''));
     }
 
     public function destroy(Booking $booking, BookingProduct $item): RedirectResponse
@@ -64,7 +69,44 @@ class BookingProductController extends Controller
 
         $item->delete();
 
-        return back()->with('status', "{$item->product->name} removed from the set-up.");
+        return back()->with('status', "{$item->product->name} removed from the set-up.".$this->reopenOrder($item));
+    }
+
+    /**
+     * A change to an order the supplier already received needs their approval again,
+     * so the order goes back to "pending" until the planner re-sends it.
+     */
+    private function reopenOrder(BookingProduct $item): string
+    {
+        $assignment = BookingSupplier::where('booking_id', $item->booking_id)
+            ->where('supplier_id', $item->product->supplier_id)->with('supplier')->first();
+
+        return $assignment?->reopenIfSent()
+            ? " {$assignment->supplier->name}'s order changed. Send it again so they can accept the update."
+            : '';
+    }
+
+    /**
+     * Rejects ordering more units than the vendor has left. Units this wedding already ordered
+     * count as its own, so changing 4 to 6 needs only 2 more free units.
+     */
+    private function ensureInStock(SupplierProduct $product, int $quantity, BookingProduct $item): void
+    {
+        $left = $product->unitsLeft();
+
+        if ($left === null) {
+            return;
+        }
+
+        $available = $left + ($item->exists && $item->booking->event_date->gte(today()) ? $item->getOriginal('quantity') : 0);
+
+        if ($quantity > $available) {
+            throw ValidationException::withMessages([
+                'quantity' => $available === 0
+                    ? "{$product->name} is out of stock with {$product->supplier->name}."
+                    : "Only {$available} of {$product->name} left with {$product->supplier->name}.",
+            ]);
+        }
     }
 
     /** The vendor's "ready by" date can be no later than the wedding itself. */

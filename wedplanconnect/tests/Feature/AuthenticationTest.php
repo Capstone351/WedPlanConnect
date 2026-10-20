@@ -93,11 +93,16 @@ class AuthenticationTest extends TestCase
     public function test_clients_can_self_register(): void
     {
         $this->post('/register', [
-            'name' => 'Ana Santos', 'email' => 'Ana.Santos@Gmail.com', 'phone' => '09171234567',
+            'name' => 'Ana Santos', 'bride_name' => 'Ana Santos', 'groom_name' => 'Miguel Reyes',
+            'email' => 'Ana.Santos@Gmail.com', 'phone' => '09171234567',
             'password' => 'Secret123', 'password_confirmation' => 'Secret123', 'privacy' => '1',
         ])->assertRedirect('/my');
 
-        $this->assertDatabaseHas('users', ['email' => 'ana.santos@gmail.com', 'role' => 'client', 'phone' => '09171234567']);
+        $this->assertDatabaseHas('users', [
+            'email' => 'ana.santos@gmail.com', 'role' => 'client', 'phone' => '09171234567',
+            'bride_name' => 'Ana Santos', 'groom_name' => 'Miguel Reyes',
+        ]);
+        $this->get('/my')->assertOk()->assertSee('The wedding of')->assertSee('Ana Santos &amp; Miguel Reyes', false);
     }
 
     public function test_registration_requires_one_name_and_an_eleven_digit_mobile(): void
@@ -105,11 +110,16 @@ class AuthenticationTest extends TestCase
         // This test posts more invalid sign-ups than the route's throttle allows per minute.
         $this->withoutMiddleware(ThrottleRequests::class);
 
-        $valid = ['name' => 'Ana Santos', 'email' => 'ana@gmail.com', 'phone' => '09171234567',
+        $valid = ['name' => 'Ana Santos', 'bride_name' => 'Ana Santos', 'groom_name' => 'Miguel Reyes', 'email' => 'ana@gmail.com', 'phone' => '09171234567',
             'password' => 'Secret123', 'password_confirmation' => 'Secret123', 'privacy' => '1'];
 
         foreach (['Ana & Miguel', 'Ana and Miguel', 'Ana at Miguel', 'Ana / Miguel'] as $couple) {
             $this->post('/register', ['name' => $couple] + $valid)->assertSessionHasErrors('name');
+        }
+
+        foreach (['bride_name', 'groom_name'] as $field) {
+            $this->post('/register', [$field => ''] + $valid)->assertSessionHasErrors($field);
+            $this->post('/register', [$field => 'Ana & Miguel'] + $valid)->assertSessionHasErrors($field);
         }
 
         foreach (['', '0917123456', '091712345678', '0917-123-4567', '+639171234567', '19171234567', '08171234567'] as $phone) {
@@ -121,5 +131,17 @@ class AuthenticationTest extends TestCase
         }
 
         $this->assertDatabaseCount('users', 0);
+    }
+
+    public function test_client_updates_the_couples_names(): void
+    {
+        $client = User::factory()->create(['role' => 'client']);
+
+        $this->actingAs($client)->put('/account/couple', ['bride_name' => 'Bea Lim', 'groom_name' => 'Paolo Cruz'])
+            ->assertSessionHasNoErrors();
+        $this->assertSame('Bea Lim & Paolo Cruz', $client->fresh()->coupleNames());
+
+        $this->actingAs(User::factory()->planner()->create())->put('/account/couple', ['bride_name' => 'X', 'groom_name' => 'Y'])
+            ->assertForbidden();
     }
 }

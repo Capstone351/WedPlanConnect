@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Support\Network;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Builder;
@@ -13,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
 #[Fillable(['planner_id', 'client_id', 'client_name', 'contact_number', 'event_date', 'venue', 'package', 'total_amount', 'status'])]
@@ -112,6 +114,16 @@ class Booking extends Model
             'client' => $query->where('client_id', $user->id),
             default => $query->whereRaw('1 = 0'),
         };
+    }
+
+    /**
+     * IDs of planners who already have an active wedding on the given date.
+     *
+     * @return Collection<int, int>
+     */
+    public static function plannerIdsBookedOn(CarbonInterface $date): Collection
+    {
+        return self::active()->whereDate('event_date', $date->toDateString())->distinct()->pluck('planner_id');
     }
 
     /**

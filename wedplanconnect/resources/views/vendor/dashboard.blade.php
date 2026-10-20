@@ -47,6 +47,36 @@
             <x-stat label="Completed" :value="$counts['completed']" icon="check" tone="green" />
         </div>
 
+        @if ($lowStock->isNotEmpty())
+            <div class="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                <span>
+                    <strong>Running low:</strong>
+                    {{ $lowStock->map(fn ($p) => $p->name.' ('.($p->unitsLeft() === 0 ? 'out of stock' : $p->unitsLeft().' left').')')->join(', ') }}
+                </span>
+                <a href="{{ route('vendor.inventory') }}" class="btn-secondary btn-sm">Update inventory</a>
+            </div>
+        @endif
+
+        @if ($awaiting->isNotEmpty())
+            <div class="card mt-6 border-gold-300">
+                <div class="card-header">
+                    <h2 class="card-title">Orders waiting for your reply</h2>
+                    <span class="badge-gold">{{ $awaiting->count() }} new</span>
+                </div>
+                <ul class="divide-y divide-line">
+                    @foreach ($awaiting as $a)
+                        <li class="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
+                            <span>
+                                <span class="block font-medium">{{ $a->booking->client_name }}</span>
+                                <span class="block text-xs text-stone-500">Wedding {{ $a->booking->event_date->format('M j, Y') }} · sent {{ $a->order_sent_at->diffForHumans() }}</span>
+                            </span>
+                            <a href="{{ route('vendor.bookings.show', $a->booking_id) }}" class="btn-primary btn-sm">Review and accept</a>
+                        </li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
         <div class="card mt-6">
             <div class="card-header">
                 <h2 class="card-title">Products to prepare</h2>

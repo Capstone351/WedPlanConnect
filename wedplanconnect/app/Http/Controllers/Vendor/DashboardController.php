@@ -7,6 +7,7 @@ use App\Models\Booking;
 use App\Models\BookingProduct;
 use App\Models\BookingSupplier;
 use App\Models\Supplier;
+use App\Notifications\SupplierOrderAnswered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -30,7 +31,11 @@ class DashboardController extends Controller
             'supplier' => $supplier,
             'next' => $upcoming->first(),
             'assignments' => $upcoming,
+            'awaiting' => $upcoming->filter(fn ($a) => $a->awaitingReply())->values(),
             'deadlines' => $supplier ? $this->openOrders($supplier) : collect(),
+            'lowStock' => $supplier
+                ? $supplier->products()->whereNotNull('stock_quantity')->withReserved()->get()->filter(fn ($p) => $p->unitsLeft() <= $p->low_stock_threshold)->values()
+                : collect(),
             'counts' => [
                 'active' => $assignments->filter(fn ($a) => in_array($a->booking->status, Booking::ACTIVE_STATUSES))->count(),
                 'upcoming' => $upcoming->count(),
@@ -64,6 +69,33 @@ class DashboardController extends Controller
             // Only this vendor's own products ordered for the wedding.
             'items' => $booking->bookingProducts()->whereHas('product', fn ($q) => $q->withTrashed()->where('supplier_id', $supplier->id))->with('product')->orderBy('due_date')->get(),
         ]);
+    }
+
+    /** The supplier accepts or declines the order the planner sent them; the planner is notified. */
+    public function respond(Request $request, Booking $booking): RedirectResponse
+    {
+        $supplier = $this->supplier($request);
+        abort_unless($supplier, 403);
+
+        $assignment = BookingSupplier::where('booking_id', $booking->id)->where('supplier_id', $supplier->id)->first();
+        abort_unless($assignment, 403, 'You are not assigned to this booking.');
+
+        if (! $assignment->awaitingReply()) {
+            return back()->withErrors(['decision' => 'This order is no longer waiting for your reply.']);
+        }
+
+        $data = $request->validate([
+            'decision' => ['required', Rule::in(['accept', 'decline'])],
+            'note' => ['nullable', 'required_if:decision,decline', 'string', 'max:255'],
+        ], ['note.required_if' => 'Tell the planner why you are declining.']);
+
+        $accepted = $data['decision'] === 'accept';
+        $assignment->recordReply($accepted, $data['note'] ?? null);
+        $booking->planner->notify(new SupplierOrderAnswered($assignment->setRelation('booking', $booking)->setRelation('supplier', $supplier)));
+
+        return back()->with('status', $accepted
+            ? 'Order accepted. The Wedding Planner has been notified.'
+            : 'Order declined. The Wedding Planner has been notified.');
     }
 
     public function profile(Request $request): View

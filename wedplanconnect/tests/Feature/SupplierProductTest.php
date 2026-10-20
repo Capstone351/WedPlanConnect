@@ -86,6 +86,19 @@ class SupplierProductTest extends TestCase
         $this->assertTrue($booking->bookingSuppliers()->where('supplier_id', $product->supplier_id)->exists());
     }
 
+    public function test_planner_picks_products_by_supplier(): void
+    {
+        $booking = Booking::factory()->create();
+        $supplier = Supplier::factory()->create(['name' => 'Lorr Aljas', 'category' => 'Event Styling']);
+        SupplierProduct::create(['supplier_id' => $supplier->id, 'name' => 'Arch', 'price' => 28000, 'is_available' => true]);
+
+        $this->actingAs($booking->planner)->get("/bookings/{$booking->id}")
+            ->assertOk()
+            ->assertSee('Lorr Aljas · Event Styling')
+            ->assertSee('Arch — Lorr Aljas', false)
+            ->assertSee('data-supplier="'.$supplier->id.'"', false);
+    }
+
     public function test_hidden_products_cannot_be_selected(): void
     {
         $booking = Booking::factory()->create();
@@ -162,7 +175,7 @@ class SupplierProductTest extends TestCase
         $budget = ClientBudget::create(['user_id' => $booking->client_id, 'total_amount' => 100000]);
         $budget->allocations()->create(['category' => 'Cakes', 'amount' => 20000]);
 
-        $baker = Supplier::factory()->create(['category' => 'Cakes']);
+        $baker = Supplier::factory()->create(['name' => 'Nanay Daisy', 'category' => 'Cakes']);
         $cake = SupplierProduct::create(['supplier_id' => $baker->id, 'name' => '3-tier cake', 'price' => 15000, 'is_available' => true]);
         SupplierProduct::create(['supplier_id' => $baker->id, 'name' => 'Dessert table', 'price' => 12000, 'is_available' => true]);
         SupplierProduct::create(['supplier_id' => $baker->id, 'name' => 'Cupcake tower', 'price' => 4000, 'is_available' => true]);
@@ -173,8 +186,8 @@ class SupplierProductTest extends TestCase
             ->assertSee('By category · picked vs. budget')
             ->assertSee('₱5,000 left', false)
             ->assertSee('₱5,000 left in budget', false)
-            ->assertSee('Dessert table (₱12,000.00) · over budget', false)
-            ->assertDontSee('Cupcake tower (₱4,000.00) · over budget', false);
+            ->assertSee('Dessert table — Nanay Daisy (₱12,000.00) · over budget', false)
+            ->assertDontSee('Cupcake tower — Nanay Daisy (₱4,000.00) · over budget', false);
     }
 
     public function test_vendor_sees_ready_by_deadlines_for_their_orders(): void

@@ -9,6 +9,7 @@ use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\Client;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\InventoryController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OutboxController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\Planner;
@@ -69,6 +70,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/account', [ProfileController::class, 'edit'])->name('account.edit');
     Route::get('/products/{product}/image', [SupplierProductController::class, 'image'])->withTrashed()->name('products.image');
     Route::put('/account/password', [ProfileController::class, 'updatePassword'])->name('account.password');
+    Route::put('/account/couple', [ProfileController::class, 'updateCouple'])->name('account.couple');
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/notifications/{id}', [NotificationController::class, 'open'])->name('notifications.open');
+    Route::post('/notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.read-all');
 
     /*
     | Admin
@@ -107,6 +112,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/bookings/{booking}/suppliers', [BookingSupplierController::class, 'store'])->name('bookings.suppliers.store');
         Route::patch('/bookings/{booking}/suppliers/{assignment}', [BookingSupplierController::class, 'update'])->name('bookings.suppliers.update');
         Route::delete('/bookings/{booking}/suppliers/{assignment}', [BookingSupplierController::class, 'destroy'])->name('bookings.suppliers.destroy');
+        Route::post('/bookings/{booking}/suppliers/{assignment}/send', [BookingSupplierController::class, 'send'])->name('bookings.suppliers.send');
         Route::get('/bookings/{booking}/qr', [BookingController::class, 'qr'])->name('bookings.qr');
         Route::get('/bookings/{booking}/qr.svg', [BookingController::class, 'qrDownload'])->name('bookings.qr.download');
 
@@ -183,8 +189,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/', [Vendor\DashboardController::class, 'index'])->name('dashboard');
         Route::get('/bookings', [Vendor\DashboardController::class, 'bookings'])->name('bookings');
         Route::get('/bookings/{booking}', [Vendor\DashboardController::class, 'booking'])->name('bookings.show');
+        Route::post('/bookings/{booking}/respond', [Vendor\DashboardController::class, 'respond'])->name('bookings.respond');
         Route::get('/profile', [Vendor\DashboardController::class, 'profile'])->name('profile');
         Route::patch('/availability', [Vendor\DashboardController::class, 'availability'])->name('availability');
         Route::resource('products', SupplierProductController::class)->except('show');
+        Route::get('/inventory', [Vendor\InventoryController::class, 'index'])->name('inventory');
+        Route::patch('/inventory/{product}', [Vendor\InventoryController::class, 'update'])->name('inventory.update');
     });
 });

@@ -3,6 +3,41 @@
         <a href="{{ route('vendor.bookings') }}" class="btn-secondary">Back</a>
     </x-slot:actions>
 
+    {{-- The planner's order: the vendor accepts or declines it --}}
+    @if ($assignment->awaitingReply())
+        <div class="mb-6 rounded-2xl border border-gold-300 bg-gold-50 p-5">
+            <div class="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                    <h2 class="font-display text-lg font-semibold text-ink">New order to review</h2>
+                    <p class="mt-1 text-sm text-stone-700">{{ $booking->planner->name }} sent this order {{ $assignment->order_sent_at->diffForHumans() }}. Check the products and ready-by dates below, then accept or decline.</p>
+                </div>
+                <form method="POST" action="{{ route('vendor.bookings.respond', $booking) }}">
+                    @csrf
+                    <input type="hidden" name="decision" value="accept">
+                    <button class="btn-primary"><x-icon name="check" class="size-4" /> Accept order</button>
+                </form>
+            </div>
+            <details class="group mt-3" @if ($errors->has('note')) open @endif>
+                <summary class="cursor-pointer list-none text-sm font-medium text-red-700 hover:underline">Can't take this order? Decline it</summary>
+                <form method="POST" action="{{ route('vendor.bookings.respond', $booking) }}" class="mt-3 space-y-2">
+                    @csrf
+                    <input type="hidden" name="decision" value="decline">
+                    <label class="label" for="note">Reason for the planner</label>
+                    <textarea id="note" name="note" rows="2" maxlength="255" required class="input" placeholder="e.g. Fully booked on this date">{{ old('note') }}</textarea>
+                    <button class="btn-secondary text-red-700">Decline order</button>
+                </form>
+            </details>
+        </div>
+    @elseif ($assignment->responded_at)
+        <div @class(['mb-6 rounded-xl px-4 py-3 text-sm ring-1', 'bg-emerald-50 text-emerald-800 ring-emerald-200' => $assignment->status === 'confirmed', 'bg-red-50 text-red-700 ring-red-200' => $assignment->status !== 'confirmed'])>
+            You {{ $assignment->status === 'confirmed' ? 'accepted' : 'declined' }} this order on {{ $assignment->responded_at->format('M j, Y g:i A') }}{{ $assignment->response_note ? ': "'.$assignment->response_note.'"' : '.' }}
+        </div>
+    @elseif (! $assignment->order_sent_at)
+        <div class="mb-6 rounded-xl bg-stone-50 px-4 py-3 text-sm text-stone-600 ring-1 ring-line">
+            The Wedding Planner is still preparing your order. You'll be notified when it's ready to accept.
+        </div>
+    @endif
+
     <div class="grid gap-6 lg:grid-cols-2 lg:items-start">
         <div class="card">
             <div class="card-header"><h2 class="card-title">Event</h2></div>

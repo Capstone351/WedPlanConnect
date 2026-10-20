@@ -88,4 +88,18 @@ class QrStatusTest extends TestCase
 
         $this->get("/status/{$token}")->assertSee('not available');
     }
+
+    public function test_qr_code_uses_the_public_url_when_one_is_set(): void
+    {
+        config(['wedplan.public_url' => 'https://wedplan-demo.ngrok-free.app/']);
+        $booking = Booking::factory()->confirmed()->create();
+
+        $this->assertSame("https://wedplan-demo.ngrok-free.app/status/{$booking->qr_token}", $booking->statusUrl());
+    }
+
+    public function test_pages_reached_through_the_local_tunnel_use_https_links(): void
+    {
+        $this->get('/login', ['X-Forwarded-Proto' => 'https', 'X-Forwarded-Host' => 'wedplan-demo.ngrok-free.app'])
+            ->assertOk()->assertSee('https://wedplan-demo.ngrok-free.app/login', false);
+    }
 }

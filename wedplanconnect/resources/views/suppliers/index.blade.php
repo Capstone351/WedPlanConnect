@@ -1,5 +1,6 @@
 <x-layouts.app title="Suppliers" heading="Supplier Catalog" subheading="Centralized list of wedding service providers. Contact details are hidden from clients.">
     <x-slot:actions>
+        <a href="{{ route('client.catalog') }}" class="btn-secondary">Browse catalog & packages</a>
         <a href="{{ route('suppliers.create') }}" class="btn-primary"><x-icon name="plus" class="size-4" /> New Supplier</a>
     </x-slot:actions>
 

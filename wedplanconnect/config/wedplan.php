@@ -34,6 +34,8 @@ return [
     'otp_ttl_minutes' => 10,
     'otp_max_attempts' => 5,
     'qr_session_minutes' => 30,
+    // Public address (e.g. an ngrok domain) used in QR codes so they open from any network, not just this Wi-Fi.
+    'public_url' => env('PUBLIC_URL'),
 
     /*
     | Chatbot: keyword-match confidence threshold (0–1) and optional Gemini fallback.

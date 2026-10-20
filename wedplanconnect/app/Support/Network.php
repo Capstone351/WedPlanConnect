@@ -48,12 +48,18 @@ class Network
 
     /**
      * Base address used inside QR codes.
+     * - PUBLIC_URL set (e.g. an ngrok tunnel): that address, reachable from mobile data too.
      * - Real deployments (APP_URL is a domain or public address): APP_URL as configured.
      * - Local/classroom setups (APP_URL is localhost or a private IP): this PC's current Wi-Fi address,
      *   on the port the app is being used on.
      */
     public static function qrBaseUrl(): string
     {
+        // A public tunnel or domain (PUBLIC_URL) works from any network, so it always wins.
+        if ($public = config('wedplan.public_url')) {
+            return rtrim($public, '/');
+        }
+
         $configured = rtrim((string) config('app.url'), '/');
         $host = parse_url($configured, PHP_URL_HOST);
 

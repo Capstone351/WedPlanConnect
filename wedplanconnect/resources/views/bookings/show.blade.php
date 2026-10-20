@@ -110,13 +110,30 @@
                                         @else
                                             <span class="badge-{{ \App\Models\BookingSupplier::badge($a->status) }}">{{ ucfirst($a->status) }}</span>
                                         @endif
+                                        @if ($a->awaitingReply())
+                                            <div class="mt-1 text-xs text-stone-500">Order sent {{ $a->order_sent_at->diffForHumans() }} · awaiting reply</div>
+                                        @elseif ($a->responded_at)
+                                            <div @class(['mt-1 text-xs', 'text-emerald-700' => $a->status === 'confirmed', 'text-red-700' => $a->status !== 'confirmed'])>
+                                                {{ $a->status === 'confirmed' ? 'Accepted' : 'Declined' }} {{ $a->responded_at->diffForHumans() }}{{ $a->response_note ? ': "'.$a->response_note.'"' : '' }}
+                                            </div>
+                                        @endif
                                     </td>
                                     <td class="text-right">
                                         @if ($active)
-                                            <form method="POST" action="{{ route('bookings.suppliers.destroy', [$booking, $a]) }}" data-confirm="Remove {{ $a->supplier->name }} from this booking?">
-                                                @csrf @method('DELETE')
-                                                <button class="btn-icon" title="Remove {{ $a->supplier->name }}" aria-label="Remove {{ $a->supplier->name }}"><x-icon name="trash" class="size-4" /></button>
-                                            </form>
+                                            <div class="flex items-center justify-end gap-1">
+                                                @if ($a->supplier->user || $a->supplier->email)
+                                                    <form method="POST" action="{{ route('bookings.suppliers.send', [$booking, $a]) }}">
+                                                        @csrf
+                                                        <button class="btn-secondary btn-sm whitespace-nowrap" title="Notify {{ $a->supplier->name }} so they can accept or decline">{{ $a->order_sent_at ? 'Resend order' : 'Send order' }}</button>
+                                                    </form>
+                                                @else
+                                                    <span class="text-xs text-stone-400" title="Add an email or vendor login for this supplier to send orders">No contact for orders</span>
+                                                @endif
+                                                <form method="POST" action="{{ route('bookings.suppliers.destroy', [$booking, $a]) }}" data-confirm="Remove {{ $a->supplier->name }} from this booking?">
+                                                    @csrf @method('DELETE')
+                                                    <button class="btn-icon" title="Remove {{ $a->supplier->name }}" aria-label="Remove {{ $a->supplier->name }}"><x-icon name="trash" class="size-4" /></button>
+                                                </form>
+                                            </div>
                                         @endif
                                     </td>
                                 </tr>
@@ -190,6 +207,9 @@
                                             <x-product-image :product="$item->product" class="size-10 shrink-0" />
                                             <div>
                                                 <div class="font-medium">{{ $item->product->name }}</div>
+                                                @if ($item->product->is_package)
+                                                    <span class="badge-gold">Package · {{ $item->product->guestLabel() }}</span>
+                                                @endif
                                                 <div class="text-xs text-stone-500">{{ $item->unit_price !== null ? '₱'.number_format($item->unit_price, 2).' '.$item->product->unit : 'Price on request' }}{{ $item->notes ? ' · '.$item->notes : '' }}</div>
                                             </div>
                                         </div>
@@ -238,15 +258,26 @@
                     <form method="POST" action="{{ route('bookings.items.store', $booking) }}" class="flex flex-wrap items-end gap-3 border-t border-stone-100 p-4"
                         @if ($budget) data-setup-budget="{{ json_encode(['overall' => $overallLeft, 'categories' => $categoryLeft]) }}" @endif>
                         @csrf
+                        @php $productSuppliers = $selectableProducts->pluck('supplier')->unique('id')->sortBy(['category', 'name']); @endphp
+                        <div class="min-w-48">
+                            <label class="label" for="product_supplier">Supplier</label>
+                            <select id="product_supplier" class="input" data-supplier-filter>
+                                <option value="">All suppliers ({{ $productSuppliers->count() }})</option>
+                                @foreach ($productSuppliers as $s)
+                                    <option value="{{ $s->id }}">{{ $s->name }} · {{ $s->category }}{{ $preferredSupplierIds->contains($s->id) ? ' ★' : '' }}</option>
+                                @endforeach
+                            </select>
+                        </div>
                         <div class="min-w-60 flex-1">
-                            <label class="label" for="supplier_product_id">Add a product</label>
+                            <label class="label" for="supplier_product_id">Product</label>
                             <select id="supplier_product_id" name="supplier_product_id" required class="input">
-                                <option value="">Choose from vendor offerings…</option>
+                                <option value="">{{ $selectableProducts->isEmpty() ? 'No supplier has listed products yet' : 'Choose a product from a supplier…' }}</option>
                                 @foreach ($selectableProducts->groupBy(fn ($p) => $p->supplier->category.' · '.$p->supplier->name.($preferredSupplierIds->contains($p->supplier_id) ? ' ★ client preference' : '')
                                     .($categoryLeft->has($p->supplier->category) ? ' · ₱'.number_format(max(0, $categoryLeft[$p->supplier->category]), 0).' left in budget' : '')) as $group => $products)
-                                    <optgroup label="{{ $group }}">
+                                    <optgroup label="{{ $group }}" data-supplier="{{ $products->first()->supplier_id }}">
                                         @foreach ($products as $p)
-                                            <option value="{{ $p->id }}" data-price="{{ $p->price }}" data-category="{{ $p->supplier->category }}">{{ $p->name }} ({{ $p->priceLabel() }}){{ $fits($p) ? '' : ' · over budget' }}</option>
+                                            @php $left = $p->unitsLeft(); @endphp
+                                            <option value="{{ $p->id }}" data-price="{{ $p->price }}" data-category="{{ $p->supplier->category }}" @disabled($left === 0)>{{ $p->is_package ? 'Package for '.number_format($p->guest_capacity).' guests: ' : '' }}{{ $p->name }} — {{ $p->supplier->name }} ({{ $p->priceLabel() }}){{ $fits($p) ? '' : ' · over budget' }}{{ $left === null ? '' : ($left === 0 ? ' · out of stock' : ' · '.$left.' left') }}</option>
                                         @endforeach
                                     </optgroup>
                                 @endforeach

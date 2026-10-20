@@ -10,6 +10,28 @@
             @endif
         </div>
 
+        @if ($user->role === 'client')
+            <form method="POST" action="{{ route('account.couple') }}" class="card lg:col-span-2">
+                @csrf @method('PUT')
+                <div class="card-header"><h2 class="card-title">The couple</h2></div>
+                <div class="card-body space-y-4">
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <div>
+                            <label for="bride_name" class="label">Bride's name</label>
+                            <input id="bride_name" name="bride_name" value="{{ old('bride_name', $user->bride_name) }}" required maxlength="100" class="input">
+                        </div>
+                        <div>
+                            <label for="groom_name" class="label">Groom's name</label>
+                            <input id="groom_name" name="groom_name" value="{{ old('groom_name', $user->groom_name) }}" required maxlength="100" class="input">
+                        </div>
+                    </div>
+                    <p class="hint mt-0">Shown at the top of your wedding dashboard.</p>
+                    <button class="btn-primary">Save names</button>
+                </div>
+            </form>
+            <div class="hidden lg:block"></div>
+        @endif
+
         <form method="POST" action="{{ route('account.password') }}" class="card lg:col-span-2">
             @csrf @method('PUT')
             <div class="card-header"><h2 class="card-title">Change password</h2></div>
