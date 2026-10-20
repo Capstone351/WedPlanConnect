@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Booking;
 use App\Models\BookingSupplier;
+use App\Notifications\SupplierOrderSent;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\Rule;
 
 /**
@@ -49,6 +51,31 @@ class BookingSupplierController extends Controller
         $assignment->update($data);
 
         return back()->with('status', "{$assignment->supplier->name} marked as ".ucfirst($data['status']).'.');
+    }
+
+    /** Sends the supplier their order (services plus any products picked from them) to accept or decline. */
+    public function send(Booking $booking, BookingSupplier $assignment): RedirectResponse
+    {
+        $this->authorizeBooking($booking);
+        abort_unless($assignment->booking_id === $booking->id, 404);
+        abort_unless(in_array($booking->status, Booking::ACTIVE_STATUSES), 403, 'Orders can only be sent for pending or confirmed bookings.');
+
+        $supplier = $assignment->supplier;
+        if (! $supplier->user && ! $supplier->email) {
+            return back()->withErrors(['order' => "{$supplier->name} has no vendor account or email, so the order can't be sent. Contact them directly and update their status by hand."]);
+        }
+
+        $items = $booking->bookingProducts()->with('product')
+            ->whereHas('product', fn ($q) => $q->withTrashed()->where('supplier_id', $supplier->id))
+            ->orderBy('due_date')->get();
+
+        $assignment->markOrderSent();
+        $notification = new SupplierOrderSent($assignment->load('booking.planner', 'supplier'), $items);
+        $supplier->user
+            ? $supplier->user->notify($notification)
+            : Notification::route('mail', $supplier->email)->notify($notification);
+
+        return back()->with('status', "Order sent to {$supplier->name}. You'll be notified when they accept or decline.");
     }
 
     public function destroy(Booking $booking, BookingSupplier $assignment): RedirectResponse

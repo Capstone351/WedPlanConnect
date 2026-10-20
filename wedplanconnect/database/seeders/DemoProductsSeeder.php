@@ -56,6 +56,33 @@ class DemoProductsSeeder extends Seeder
             }
         }
 
+        // Sample stock counts so the vendor inventory shows normal, low and out-of-stock items.
+        foreach (['Entourage bouquets' => 40, 'Reception centerpieces' => 60, 'Aisle floral markers' => 3, 'Floral arch arrangement' => 2] as $name => $stock) {
+            SupplierProduct::where('name', $name)->whereNull('stock_quantity')->update(['stock_quantity' => $stock]);
+        }
+
+        // Sample packages: [supplier, name, description, guests, price, inclusions]
+        $packages = [
+            ['Lorr Aljas', 'Garden Romance styling package', 'Full floral and styling set-up for the ceremony and reception.', 100, 85000,
+                "Bridal bouquet\n6 entourage bouquets\nCeremony arch florals\n10 aisle markers\nReception centerpieces for 10 tables"],
+            ['Lorr Aljas', 'Grand Ballroom styling package', 'Ballroom-scale styling with stage backdrop and tall centerpieces.', 200, 160000,
+                "Bridal and entourage bouquets\nStage backdrop with florals\nTall centerpieces for 20 tables\nAisle and entrance styling"],
+            ["Victoria's", 'Wedding cake & dessert package', 'Wedding cake plus a dessert table for your guests.', 150, 28000,
+                "3-tier wedding cake\nDessert table set-up\n150 cupcakes or pastries"],
+            ['Scarlet Lights and Sounds Mobile', 'Reception lights & sounds package', 'Sound system, lighting and technician for the whole event.', 200, 45000,
+                "4 speakers and 4 wireless mics\nWash and accent lights\nFairy-light ceiling canopy\nTechnician for the whole event"],
+        ];
+
+        foreach ($packages as [$supplierName, $name, $description, $guests, $price, $inclusions]) {
+            if ($supplier = Supplier::where('name', $supplierName)->first()) {
+                SupplierProduct::firstOrCreate(
+                    ['supplier_id' => $supplier->id, 'name' => $name],
+                    ['description' => $description, 'is_package' => true, 'guest_capacity' => $guests, 'inclusions' => $inclusions,
+                        'price' => $price, 'unit' => 'per package', 'is_available' => true],
+                );
+            }
+        }
+
         // Pick a few items for each confirmed or completed sample wedding.
         $picks = [
             ['Bridal bouquet (roses & peonies)', 1], ['Entourage bouquets', 6], ['Floral arch arrangement', 1],

@@ -29,6 +29,7 @@ class RegisterController extends Controller
         $data = $request->validate([
             // One person per account: reject "Ana & Miguel", "Ana and Miguel", "Ana / Miguel", "Ana + Miguel".
             'name' => ['required', 'string', 'max:150', 'not_regex:/[&\/+]|\s(and|at)\s/i'],
+            ...User::coupleNameRules(),
             // Gmail addresses only (one-time PINs and notices are sent there).
             'email' => ['required', 'email', 'max:150', 'regex:/^[a-z0-9.+_-]+@gmail\.com$/', 'unique:users,email'],
             // Philippine mobile number: 11 digits starting with 09.
@@ -42,6 +43,7 @@ class RegisterController extends Controller
             'phone.required' => 'Please enter your mobile number.',
             'phone.regex' => 'The mobile number must start with 09 and have exactly 11 digits, e.g. 09171234567.',
             'privacy.accepted' => 'Please agree to the data privacy notice to continue.',
+            ...User::coupleNameMessages(),
         ]);
 
         $user = User::create([...Arr::except($data, 'privacy'), 'role' => 'client']);

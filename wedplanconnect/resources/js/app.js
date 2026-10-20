@@ -134,6 +134,20 @@ if (budgetForm) {
     update();
 }
 
+// Booking set-up: pick a supplier first to list only that supplier's products.
+document.querySelectorAll('[data-supplier-filter]').forEach((filter) => {
+    const product = filter.form.querySelector('[name="supplier_product_id"]');
+    filter.addEventListener('change', () => {
+        product.querySelectorAll('optgroup').forEach((group) => {
+            group.hidden = filter.value !== '' && group.dataset.supplier !== filter.value;
+        });
+        if (product.selectedOptions[0]?.parentElement.hidden) {
+            product.value = '';
+            product.dispatchEvent(new Event('change'));
+        }
+    });
+});
+
 // Booking set-up: show how a product and quantity would fit the couple's budget before adding it.
 document.querySelectorAll('[data-setup-budget]').forEach((form) => {
     const budget = JSON.parse(form.dataset.setupBudget);
@@ -220,6 +234,7 @@ if (dateForm) {
             const res = await fetch(url, { headers: { Accept: 'application/json' } });
             const data = await res.json();
             if (data.past) showHint('Please choose a future date.', 'bad');
+            else if (data.planner_busy) showHint(`Your planner, ${dateForm.dataset.plannerName}, already has a wedding on this date. Please pick another date, or choose a different planner.`, 'bad');
             else if (data.venue_taken) showHint('That venue is already booked with us on this date. Consider your backup date or another venue.', 'bad');
             else if (data.weddings > 0) showHint(`We already have ${data.weddings} wedding${data.weddings > 1 ? 's' : ''} on this date. Your planner will confirm availability.`, 'warn');
             else showHint('Good news! We have no weddings booked on this date yet.', 'ok');

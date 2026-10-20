@@ -23,6 +23,13 @@
                         <h3 class="font-semibold">{{ $product->name }}</h3>
                         <span class="badge-{{ $product->is_available ? 'green' : 'gray' }}">{{ $product->is_available ? 'Available' : 'Hidden' }}</span>
                     </div>
+                    @if ($product->tracksStock())
+                        @php [$stockLabel, $stockTone] = $product->stockStatus(); @endphp
+                        <div class="mt-1 text-xs"><span class="badge-{{ $stockTone }}">{{ $stockLabel }}</span> <span class="text-stone-500">of {{ $product->stock_quantity }} in stock</span></div>
+                    @endif
+                    @if ($product->is_package)
+                        <div class="mt-1"><span class="badge-gold">Package · {{ $product->guestLabel() }}</span></div>
+                    @endif
                     <div class="mt-0.5 text-sm font-medium text-brand-700">{{ $product->priceLabel() }}</div>
                     <p class="mt-2 line-clamp-3 flex-1 text-sm text-stone-600">{{ $product->description ?: 'No description.' }}</p>
                     <div class="mt-3 text-xs text-stone-500">Used in {{ $product->booking_products_count }} wedding set-up(s)</div>

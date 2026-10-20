@@ -39,7 +39,13 @@ class DemoSeeder extends Seeder
             ['Dianne & Rico Tan', 'dianne.tan@example.com', '+639184567890'],
             ['Elaine & Mark Go', 'elaine.go@example.com', '+639185678901'],
             ['Faith & Noel Ramos', 'faith.ramos@example.com', '+639186789012'],
-        ])->map(fn ($c) => $user('client', ...$c));
+        ])->map(function (array $c) use ($user) {
+            // "Ana & Miguel Santos" → bride "Ana Santos", groom "Miguel Santos".
+            [$bride, $groomAndSurname] = explode(' & ', $c[0]);
+            [$groom, $surname] = explode(' ', $groomAndSurname, 2);
+
+            return tap($user('client', ...$c))->update(['bride_name' => "{$bride} {$surname}", 'groom_name' => "{$groom} {$surname}"]);
+        });
 
         $this->seedSuppliers();
         $vendor = $user('vendor', 'Lorr Aljas', 'vendor@fmtweddings.test', '+639201112222');

@@ -62,7 +62,7 @@ class BookingController extends Controller
         if ($client = User::where('role', 'client')->find($request->integer('client_id'))) {
             $booking->fill([
                 'client_id' => $client->id,
-                'client_name' => $client->name,
+                'client_name' => $client->coupleNames() ?? $client->name,
                 'contact_number' => $client->phone,
                 'planner_id' => $client->preferred_planner_id,
                 'event_date' => $client->wedding_date?->isFuture() ? $client->wedding_date : null,
@@ -96,7 +96,7 @@ class BookingController extends Controller
 
         $booking->load([
             'planner', 'client',
-            'bookingSuppliers' => fn ($q) => $q->with('supplier')->latest(),
+            'bookingSuppliers' => fn ($q) => $q->with('supplier.user')->latest(),
             'preferences.supplier',
             'tasks' => fn ($q) => $q->with('assignee')->orderBy('status')->orderBy('due_date'),
             'payments' => fn ($q) => $q->orderByDesc('payment_date'),
@@ -113,7 +113,7 @@ class BookingController extends Controller
             'budgetByCategory' => $budget?->byCategory($booking->bookingProducts) ?? collect(),
             'availableSuppliers' => Supplier::whereNotIn('id', $assignedIds)->orderBy('category')->orderBy('name')->get(),
             // Products the planner can add to the set-up, grouped by supplier in the view.
-            'selectableProducts' => SupplierProduct::selectable()->with('supplier:id,name,category')
+            'selectableProducts' => SupplierProduct::selectable()->withReserved()->with('supplier:id,name,category')
                 ->whereNotIn('id', $booking->bookingProducts->pluck('supplier_product_id'))
                 ->get()->sortBy(fn ($p) => [$p->supplier->category, $p->supplier->name, $p->name])->values(),
             'planners' => User::whereIn('role', ['planner', 'admin'])->orderBy('name')->get(),

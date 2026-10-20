@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Client;
 
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\View\View;
 
 /**
@@ -23,6 +25,7 @@ class WeddingDateController extends Controller
         return view('client.wedding-date', [
             'user' => $user,
             'booking' => $user->clientBookings()->active()->with('planner')->orderBy('event_date')->first(),
+            'plannerBusyDates' => $this->plannerBusyDates($user),
         ]);
     }
 
@@ -44,6 +47,14 @@ class WeddingDateController extends Controller
             'wedding_date_alt.after' => 'The backup date must be in the future.',
             'wedding_date_alt.different' => 'The backup date should be different from your preferred date.',
         ]);
+
+        // The couple's chosen planner must be free on the dates they pick.
+        $busy = $this->plannerBusyDates($user)->map(fn (Carbon $d) => $d->toDateString());
+        foreach (['wedding_date' => 'that date', 'wedding_date_alt' => 'your backup date'] as $field => $label) {
+            if (! empty($data[$field]) && $busy->contains(Carbon::parse($data[$field])->toDateString())) {
+                return back()->withInput()->withErrors([$field => "Your planner, {$user->preferredPlanner->name}, already has a wedding on {$label}. Please pick another date, or choose a different planner."]);
+            }
+        }
 
         $user->forceFill($data)->save();
 
@@ -72,7 +83,24 @@ class WeddingDateController extends Controller
         return response()->json([
             'weddings' => $count,
             'venue_taken' => $venueTaken,
+            'planner_busy' => $this->plannerBusyDates($request->user())->contains(fn (Carbon $d) => $d->toDateString() === $date),
             'past' => $date <= today()->toDateString(),
         ]);
+    }
+
+    /**
+     * Upcoming dates on which the couple's chosen planner already has a wedding (dates only, no couple details).
+     *
+     * @return Collection<int, Carbon>
+     */
+    private function plannerBusyDates(User $user): Collection
+    {
+        if (! $user->preferred_planner_id) {
+            return collect();
+        }
+
+        return Booking::active()->where('planner_id', $user->preferred_planner_id)
+            ->whereDate('event_date', '>', today())
+            ->orderBy('event_date')->pluck('event_date')->unique(fn (Carbon $d) => $d->toDateString())->values();
     }
 }

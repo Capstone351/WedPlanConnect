@@ -10,6 +10,24 @@
                 @class(['input', 'input-error' => $errors->has('name')])>
             @error('name')<p class="error-text">{{ $message }}</p>@else<p class="hint">One person per account.</p>@enderror
         </div>
+        <fieldset class="rounded-xl border border-line p-4">
+            <legend class="px-1 text-sm font-semibold text-ink">The couple</legend>
+            <div class="grid gap-4 sm:grid-cols-2">
+                <div>
+                    <label for="bride_name" class="label">Bride's name</label>
+                    <input id="bride_name" name="bride_name" value="{{ old('bride_name') }}" required maxlength="100" placeholder="e.g. Ana Santos"
+                        @class(['input', 'input-error' => $errors->has('bride_name')])>
+                    @error('bride_name')<p class="error-text">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label for="groom_name" class="label">Groom's name</label>
+                    <input id="groom_name" name="groom_name" value="{{ old('groom_name') }}" required maxlength="100" placeholder="e.g. Miguel Reyes"
+                        @class(['input', 'input-error' => $errors->has('groom_name')])>
+                    @error('groom_name')<p class="error-text">{{ $message }}</p>@enderror
+                </div>
+            </div>
+            <p class="hint">Shown on your wedding dashboard. You can change them later in My Account.</p>
+        </fieldset>
         <div class="grid gap-4 sm:grid-cols-2">
             <div>
                 <label for="email" class="label">Gmail address</label>

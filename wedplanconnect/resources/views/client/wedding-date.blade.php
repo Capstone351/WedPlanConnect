@@ -12,7 +12,7 @@
         </div>
     @else
         <form method="POST" action="{{ route('client.wedding-date.update') }}" class="grid gap-6 lg:grid-cols-3 lg:items-start"
-            data-date-form data-availability-url="{{ route('client.wedding-date.availability') }}">
+            data-date-form data-availability-url="{{ route('client.wedding-date.availability') }}" data-planner-name="{{ $user->preferredPlanner?->name }}">
             @csrf @method('PUT')
 
             <div class="card lg:col-span-2">
@@ -33,6 +33,13 @@
                             @class(['input', 'input-error' => $errors->has('wedding_date_alt')])>
                         @error('wedding_date_alt')<p class="error-text">{{ $message }}</p>@else<p class="hint">In case your first choice isn't available.</p>@enderror
                     </div>
+                    @if ($plannerBusyDates->isNotEmpty())
+                        <div class="rounded-lg bg-stone-50 px-3 py-2.5 text-xs text-stone-600 ring-1 ring-line sm:col-span-2">
+                            <span class="font-semibold text-ink">{{ $user->preferredPlanner->name }} is already booked on:</span>
+                            {{ $plannerBusyDates->map(fn ($d) => $d->format('M j, Y'))->join(' · ') }}.
+                            These dates can't be chosen while {{ $user->preferredPlanner->name }} is your planner.
+                        </div>
+                    @endif
                     <div class="sm:col-span-2">
                         <label for="wedding_venue" class="label">Preferred venue <span class="font-normal text-stone-400">(optional)</span></label>
                         <input id="wedding_venue" name="wedding_venue" maxlength="200" value="{{ old('wedding_venue', $user->wedding_venue) }}"

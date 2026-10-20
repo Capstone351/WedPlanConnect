@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['role', 'name', 'email', 'phone', 'password', 'bio'])]
+#[Fillable(['role', 'name', 'bride_name', 'groom_name', 'email', 'phone', 'password', 'bio'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -52,6 +52,37 @@ class User extends Authenticatable
     public function roleLabel(): string
     {
         return self::ROLES[$this->role] ?? ucfirst($this->role);
+    }
+
+    /**
+     * Validation for the bride's and groom's names: one person's name in each field.
+     *
+     * @return array<string, array<int, string>>
+     */
+    public static function coupleNameRules(): array
+    {
+        $onePerson = ['required', 'string', 'max:100', 'not_regex:/[&\/+]|\s(and|at)\s/i'];
+
+        return ['bride_name' => $onePerson, 'groom_name' => $onePerson];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function coupleNameMessages(): array
+    {
+        return [
+            'bride_name.required' => "Please enter the bride's name.",
+            'groom_name.required' => "Please enter the groom's name.",
+            'bride_name.not_regex' => "Enter only the bride's name here.",
+            'groom_name.not_regex' => "Enter only the groom's name here.",
+        ];
+    }
+
+    /** "Ana Santos & Miguel Reyes", or null until both names are known. */
+    public function coupleNames(): ?string
+    {
+        return $this->bride_name && $this->groom_name ? "{$this->bride_name} & {$this->groom_name}" : null;
     }
 
     public function isLocked(): bool

@@ -14,10 +14,11 @@
     $testTools = \App\Models\OutboxMessage::enabled()
         ? ['Test mode' => [['Email outbox', 'outbox.index', 'outbox.*', 'bell']]]
         : [];
-    // Grouped navigation: section label => [label, route, active pattern, icon]
+    $notifications = ['Notifications', 'notifications.index', 'notifications.*', 'bell', $user->unreadNotifications()->count()];
+    // Grouped navigation: section label => [label, route, active pattern, icon, optional count badge]
     $nav = match ($user->role) {
         'admin' => [
-            '' => [['Dashboard', 'admin.dashboard', 'admin.dashboard', 'home']],
+            '' => [['Dashboard', 'admin.dashboard', 'admin.dashboard', 'home'], $notifications],
             'Operations' => $operations,
             'Administration' => [
                 ['Users', 'admin.users.index', 'admin.users.*', 'users'],
@@ -25,14 +26,15 @@
             ],
         ] + $testTools,
         'planner' => [
-            '' => [['Dashboard', 'planner.dashboard', 'planner.dashboard', 'home']],
+            '' => [['Dashboard', 'planner.dashboard', 'planner.dashboard', 'home'], $notifications],
             'Operations' => $operations,
         ] + $testTools,
         'vendor' => [
-            '' => [['Dashboard', 'vendor.dashboard', 'vendor.dashboard', 'home']],
+            '' => [['Dashboard', 'vendor.dashboard', 'vendor.dashboard', 'home'], $notifications],
             'My business' => [
                 ['Assigned Bookings', 'vendor.bookings', 'vendor.bookings*', 'calendar'],
                 ['My Products', 'vendor.products.index', 'vendor.products.*', 'cube'],
+                ['My Inventory', 'vendor.inventory', 'vendor.inventory*', 'clipboard'],
                 ['My Profile', 'vendor.profile', 'vendor.profile', 'store'],
             ],
         ],
@@ -78,9 +80,13 @@
                     <div class="nav-section">{{ $section }}</div>
                 @endif
                 <div class="space-y-0.5">
-                    @foreach ($items as [$label, $route, $pattern, $icon])
+                    @foreach ($items as $item)
+                        @php [$label, $route, $pattern, $icon] = $item; $count = $item[4] ?? 0; @endphp
                         <a href="{{ route($route) }}" @class(['nav-link', 'active' => request()->routeIs($pattern)])>
                             <x-icon :name="$icon" /> {{ $label }}
+                            @if ($count)
+                                <span class="ml-auto rounded-full bg-gold-400 px-2 py-0.5 text-[11px] font-semibold text-brand-950 tabular-nums">{{ $count }}</span>
+                            @endif
                         </a>
                     @endforeach
                 </div>
