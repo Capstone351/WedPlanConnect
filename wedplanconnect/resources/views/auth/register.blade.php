@@ -30,12 +30,11 @@
         </fieldset>
         <div class="grid gap-4 sm:grid-cols-2">
             <div>
-                <label for="email" class="label">Gmail address</label>
+                <label for="email" class="label">Email address</label>
                 <input id="email" name="email" type="email" value="{{ old('email') }}" required maxlength="150" autocomplete="email"
-                    placeholder="yourname@gmail.com" pattern="[A-Za-z0-9.+_\-]+@[Gg][Mm][Aa][Ii][Ll]\.[Cc][Oo][Mm]"
-                    title="Use a Gmail address ending in @gmail.com"
+                    placeholder="yourname@example.com"
                     @class(['input', 'input-error' => $errors->has('email')])>
-                @error('email')<p class="error-text">{{ $message }}</p>@else<p class="hint">Must end with @gmail.com</p>@enderror
+                @error('email')<p class="error-text">{{ $message }}</p>@else<p class="hint">One-time PINs and notices are sent here.</p>@enderror
             </div>
             <div>
                 <label for="phone" class="label">Mobile number</label>

@@ -126,11 +126,27 @@ class AuthenticationTest extends TestCase
             $this->post('/register', ['phone' => $phone] + $valid)->assertSessionHasErrors('phone');
         }
 
-        foreach (['ana@yahoo.com', 'ana@gmail.co', 'ana@gmail.com.ph', 'ana@mail.gmail.com', 'ana@example.com'] as $email) {
+        foreach (['', 'ana', 'ana@', '@gmail.com', 'ana santos@gmail.com'] as $email) {
             $this->post('/register', ['email' => $email] + $valid)->assertSessionHasErrors('email');
         }
 
         $this->assertDatabaseCount('users', 0);
+    }
+
+    public function test_clients_can_register_with_any_email_provider(): void
+    {
+        $this->withoutMiddleware(ThrottleRequests::class);
+
+        $valid = ['name' => 'Ana Santos', 'bride_name' => 'Ana Santos', 'groom_name' => 'Miguel Reyes', 'phone' => '09171234567',
+            'password' => 'Secret123', 'password_confirmation' => 'Secret123', 'privacy' => '1'];
+
+        foreach (['ana@gmail.com', 'ana@yahoo.com', 'ana@outlook.com', 'ana@company.com.ph'] as $email) {
+            $this->post('/register', ['email' => $email] + $valid)->assertSessionHasNoErrors()->assertRedirect('/my');
+            $this->assertDatabaseHas('users', ['email' => $email, 'role' => 'client']);
+            auth()->logout();
+        }
+
+        $this->post('/register', ['email' => 'ANA@yahoo.com'] + $valid)->assertSessionHasErrors('email');
     }
 
     public function test_client_updates_the_couples_names(): void
