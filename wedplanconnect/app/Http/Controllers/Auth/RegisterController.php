@@ -23,23 +23,22 @@ class RegisterController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        // Compare emails case-insensitively ("Ana@Gmail.com" is the same account as "ana@gmail.com").
+        // Compare emails case-insensitively ("Ana@Example.com" is the same account as "ana@example.com").
         $request->merge(['email' => strtolower(trim((string) $request->input('email')))]);
 
         $data = $request->validate([
             // One person per account: reject "Ana & Miguel", "Ana and Miguel", "Ana / Miguel", "Ana + Miguel".
             'name' => ['required', 'string', 'max:150', 'not_regex:/[&\/+]|\s(and|at)\s/i'],
             ...User::coupleNameRules(),
-            // Gmail addresses only (one-time PINs and notices are sent there).
-            'email' => ['required', 'email', 'max:150', 'regex:/^[a-z0-9.+_-]+@gmail\.com$/', 'unique:users,email'],
+            // Any email provider (one-time PINs and notices are sent there).
+            'email' => ['required', 'email', 'max:150', 'unique:users,email'],
             // Philippine mobile number: 11 digits starting with 09.
             'phone' => ['required', 'regex:/^09\d{9}$/'],
             'password' => ['required', 'confirmed', Password::min(8)->letters()->numbers()],
             'privacy' => ['accepted'],
         ], [
             'name.not_regex' => "Please enter one person's name only. Each person creates their own account.",
-            'email.regex' => 'Please use a Gmail address ending in @gmail.com, e.g. anasantos@gmail.com.',
-            'email.unique' => 'An account with this Gmail address already exists. Try logging in instead.',
+            'email.unique' => 'An account with this email address already exists. Try logging in instead.',
             'phone.required' => 'Please enter your mobile number.',
             'phone.regex' => 'The mobile number must start with 09 and have exactly 11 digits, e.g. 09171234567.',
             'privacy.accepted' => 'Please agree to the data privacy notice to continue.',
