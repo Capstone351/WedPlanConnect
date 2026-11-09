@@ -9,6 +9,7 @@ use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\Client;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\InventoryController;
+use App\Http\Controllers\MeetingController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OutboxController;
 use App\Http\Controllers\PaymentController;
@@ -126,6 +127,10 @@ Route::middleware('auth')->group(function () {
         Route::patch('/bookings/{booking}/items/{item}', [BookingProductController::class, 'update'])->name('bookings.items.update');
         Route::delete('/bookings/{booking}/items/{item}', [BookingProductController::class, 'destroy'])->name('bookings.items.destroy');
 
+        // Meetings couples asked for
+        Route::get('/meetings', [MeetingController::class, 'index'])->name('meetings.index');
+        Route::patch('/meetings/{meeting}', [MeetingController::class, 'respond'])->name('meetings.respond');
+
         // Tasks (UC-05)
         Route::resource('tasks', TaskController::class)->except('show');
         Route::patch('/tasks/{task}/status', [TaskController::class, 'status'])->name('tasks.status');
@@ -174,6 +179,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/wedding-date', [Client\WeddingDateController::class, 'edit'])->name('wedding-date');
         Route::put('/wedding-date', [Client\WeddingDateController::class, 'update'])->name('wedding-date.update');
         Route::get('/wedding-date/availability', [Client\WeddingDateController::class, 'availability'])->middleware('throttle:30,1')->name('wedding-date.availability');
+        Route::post('/booking-request', [Client\BookingRequestController::class, 'store'])->middleware('throttle:10,1')->name('booking-request');
+        Route::get('/meetings', [Client\MeetingController::class, 'index'])->name('meetings');
+        Route::post('/meetings', [Client\MeetingController::class, 'store'])->middleware('throttle:10,1')->name('meetings.store');
+        Route::patch('/meetings/{meeting}/cancel', [Client\MeetingController::class, 'cancel'])->name('meetings.cancel');
         Route::get('/planner', [Client\PlannerChoiceController::class, 'edit'])->name('planner');
         Route::put('/planner', [Client\PlannerChoiceController::class, 'update'])->name('planner.update');
         Route::get('/budget', [Client\BudgetController::class, 'edit'])->name('budget');

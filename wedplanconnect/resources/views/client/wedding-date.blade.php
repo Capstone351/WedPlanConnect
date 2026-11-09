@@ -1,12 +1,15 @@
 <x-layouts.app title="Wedding Date" heading="Your Wedding Date"
-    subheading="Tell your Wedding Planner when you'd like to get married. They'll confirm the date and venue when they create your booking.">
+    subheading="Tell your Wedding Planner when you'd like to get married, then send them your booking.">
     @if ($booking)
         <div class="hero-panel">
             <div class="relative flex flex-col items-center gap-2 px-6 py-10 text-center">
-                <div class="eyebrow text-gold-300">Your wedding is booked for</div>
+                <div class="eyebrow text-gold-300">{{ $booking->status === 'pending' ? 'Booking sent for' : 'Your wedding is booked for' }}</div>
                 <div class="font-display text-4xl font-semibold text-white sm:text-5xl">{{ $booking->event_date->format('l, F j, Y') }}</div>
                 <x-ornament class="mx-auto mt-2 w-48" :light="true" />
-                <p class="mt-2 text-brand-100/85">{{ $booking->venue }} · {{ max(0, $booking->daysToGo()) }} days to go</p>
+                <p class="mt-2 text-brand-100/85">{{ $booking->venue }} · {{ $booking->package }} · {{ max(0, $booking->daysToGo()) }} days to go</p>
+                @if ($booking->status === 'pending')
+                    <p class="mt-4 max-w-md text-sm text-brand-100/70">Waiting for <strong class="text-gold-200">{{ $booking->planner->name }}</strong> to set the price and confirm your booking.</p>
+                @endif
                 <p class="mt-4 max-w-md text-sm text-brand-100/70">Need a different date? Please contact your planner, <strong class="text-gold-200">{{ $booking->planner->name }}</strong>, so they can check availability.</p>
             </div>
         </div>
@@ -71,5 +74,43 @@
                 </p>
             </div>
         </form>
+
+        @if ($user->wedding_date)
+            <form method="POST" action="{{ route('client.booking-request') }}" class="card mt-6" id="send-booking"
+                data-confirm="Send this booking to {{ $user->preferredPlanner?->name ?? 'your planner' }}? After this, date changes go through your planner.">
+                @csrf
+                <div class="card-header"><h2 class="card-title">Send your booking to your planner</h2></div>
+                <div class="card-body space-y-5">
+                    @if (! $user->preferredPlanner || $user->preferredPlanner->trashed())
+                        <p class="text-sm text-stone-600">Choose your Wedding Planner first, then come back here to send them your booking.</p>
+                        <a href="{{ route('client.planner') }}" class="btn-primary">Choose your planner</a>
+                    @else
+                        <p class="text-sm text-stone-600">
+                            This sends <strong>{{ $user->wedding_date->format('l, F j, Y') }}</strong> to <strong>{{ $user->preferredPlanner->name }}</strong>'s bookings.
+                            They'll set the price and confirm it.
+                        </p>
+                        <div class="grid gap-5 sm:grid-cols-2">
+                            <div>
+                                <label for="package" class="label">Package</label>
+                                <select id="package" name="package" required @class(['input', 'input-error' => $errors->has('package')])>
+                                    <option value="">Choose a package</option>
+                                    @foreach ($packages as $p)
+                                        <option value="{{ $p }}" @selected(old('package') === $p)>{{ $p }}</option>
+                                    @endforeach
+                                </select>
+                                @error('package')<p class="error-text">{{ $message }}</p>@enderror
+                            </div>
+                            <div>
+                                <label for="venue" class="label">Wedding venue</label>
+                                <input id="venue" name="venue" required maxlength="200" value="{{ old('venue', $user->wedding_venue) }}"
+                                    placeholder="e.g. Casa Gorordo Museum, Cebu City" @class(['input', 'input-error' => $errors->has('venue')])>
+                                @error('venue')<p class="error-text">{{ $message }}</p>@enderror
+                            </div>
+                        </div>
+                        <button class="btn-gold">Send booking to {{ $user->preferredPlanner->name }}</button>
+                    @endif
+                </div>
+            </form>
+        @endif
     @endif
 </x-layouts.app>
