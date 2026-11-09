@@ -159,6 +159,11 @@ class BookingController extends Controller
             return back()->withErrors(['status' => 'Only pending bookings can be confirmed.']);
         }
 
+        // Bookings sent by the couple start without a price.
+        if ((float) $booking->total_amount <= 0) {
+            return back()->withErrors(['status' => 'Set the package price (Edit → Total amount) before confirming this booking.']);
+        }
+
         $booking->update(['status' => 'confirmed']);
         $booking->ensureQrToken();
 
@@ -243,7 +248,7 @@ class BookingController extends Controller
             'booking' => $booking,
             'clients' => User::where('role', 'client')->with('preferredPlanner:id,name')->orderBy('name')->get(['id', 'name', 'email', 'phone', 'preferred_planner_id', 'wedding_date', 'wedding_date_alt', 'wedding_venue']),
             'planners' => User::where('role', 'planner')->orderBy('name')->get(['id', 'name']),
-            'packages' => ['Classic Elegance', 'Garden Romance', 'Rustic Charm', 'Grand Ballroom', 'Beach Wedding', 'Intimate Ceremony', 'Custom Package'],
+            'packages' => Booking::PACKAGES,
         ];
     }
 

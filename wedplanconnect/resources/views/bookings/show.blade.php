@@ -35,6 +35,14 @@
         @endif
     </x-slot:actions>
 
+    @if ($booking->status === 'pending' && (float) $booking->total_amount <= 0)
+        <div class="mb-6 flex flex-wrap items-center gap-3 rounded-xl border border-gold-300 bg-gold-50 px-4 py-3 text-sm text-ink print:hidden">
+            <x-icon name="cash" class="size-5 shrink-0 text-gold-600" />
+            <span class="flex-1">The couple sent this booking ({{ $booking->package }}). Set the price before confirming it.</span>
+            <a href="{{ route('bookings.edit', $booking) }}" class="btn-gold">Set the price</a>
+        </div>
+    @endif
+
     <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <x-stat label="Days to go" :value="$booking->daysToGo() >= 0 ? $booking->daysToGo() : 'Done'" :hint="$booking->event_date->format('M j, Y')" icon="calendar" />
         <x-stat label="Preparation" :value="$booking->progress().'%'" hint="tasks + confirmed suppliers" icon="check" tone="green" />

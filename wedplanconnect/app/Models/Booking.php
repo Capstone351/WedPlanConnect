@@ -28,6 +28,8 @@ class Booking extends Model
     /** Statuses that occupy a date/venue slot for double-booking detection. */
     public const ACTIVE_STATUSES = ['pending', 'confirmed'];
 
+    public const PACKAGES = ['Classic Elegance', 'Garden Romance', 'Rustic Charm', 'Grand Ballroom', 'Beach Wedding', 'Intimate Ceremony', 'Custom Package'];
+
     protected function casts(): array
     {
         return [

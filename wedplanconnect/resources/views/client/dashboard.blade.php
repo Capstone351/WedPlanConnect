@@ -22,7 +22,10 @@
                     <h2 class="mt-2 font-display text-3xl font-semibold text-white">Let's start planning your wedding</h2>
                     <a href="{{ route('account.edit') }}" class="mt-2 inline-block text-sm text-gold-200 underline hover:text-white">Add the bride's and groom's names</a>
                 @endif
-                <p class="mx-auto mt-2 max-w-xl text-sm text-brand-100/85">Fill in these details. Your Wedding Planner sees them and uses them to create your booking. Your preparation progress will then appear here.</p>
+                <p class="mx-auto mt-2 max-w-xl text-sm text-brand-100/85">Fill in these details, then send your booking to your Wedding Planner. Your preparation progress will then appear here.</p>
+                @if ($me->wedding_date && $me->preferredPlanner)
+                    <a href="{{ route('client.wedding-date') }}#send-booking" class="btn-gold mt-4">Send booking to {{ $me->preferredPlanner->name }} →</a>
+                @endif
                 <div class="mx-auto mt-5 h-2 max-w-sm overflow-hidden rounded-full bg-white/15">
                     <div class="h-2 rounded-full bg-gradient-to-r from-gold-300 to-gold-500" style="width: {{ $doneCount / count($ready) * 100 }}%"></div>
                 </div>
@@ -76,7 +79,9 @@
                     [max(0, $booking->daysToGo()), 'days remaining'],
                     [$confirmed.'/'.$booking->bookingSuppliers->count(), 'suppliers booked'],
                     [$done.'/'.$booking->tasks->count(), 'tasks completed'],
-                    [round($paid / max(1, $booking->total_amount) * 100).'%', '₱'.number_format($paid).' of ₱'.number_format($booking->total_amount).' paid'],
+                    (float) $booking->total_amount > 0
+                        ? [round($paid / $booking->total_amount * 100).'%', '₱'.number_format($paid).' of ₱'.number_format($booking->total_amount).' paid']
+                        : ['—', 'price to be set by your planner'],
                 ] as [$value, $label])
                     <div class="p-5 text-center">
                         <div class="font-display text-3xl font-semibold text-gold-gradient tabular-nums">{{ $value }}</div>

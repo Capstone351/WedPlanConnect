@@ -3,6 +3,8 @@
     $user = auth()->user();
     $operations = [
         ['Bookings', 'bookings.index', 'bookings.*', 'calendar'],
+        // Badge: meeting requests still waiting for an answer.
+        ['Meetings', 'meetings.index', 'meetings.*', 'chat', in_array($user->role, ['admin', 'planner'], true) ? \App\Models\Meeting::visibleTo($user)->upcoming()->where('status', 'requested')->count() : 0],
         ['Suppliers', 'suppliers.index', 'suppliers.*', 'store'],
         ['Tasks', 'tasks.index', 'tasks.*', 'clipboard'],
         ['Inventory', 'inventory.index', 'inventory.*', 'cube'],
@@ -41,8 +43,10 @@
         default => [
             '' => [
                 ['My Wedding', 'client.dashboard', 'client.dashboard', 'heart'],
+                $notifications,
                 ['Wedding Date', 'client.wedding-date', 'client.wedding-date*', 'calendar'],
                 ['My Planner', 'client.planner', 'client.planner*', 'user'],
+                ['Meetings', 'client.meetings', 'client.meetings*', 'chat'],
                 ['My Budget', 'client.budget', 'client.budget*', 'cash'],
                 ['Supplier Catalog', 'client.catalog', 'client.catalog*', 'store'],
             ],
