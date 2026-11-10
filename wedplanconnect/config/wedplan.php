@@ -22,6 +22,21 @@ return [
     ],
 
     /*
+    | Wedding packages couples choose from (Weddings & More by Felicity Miracle Thérese).
+    | Every package has the same inclusions; they differ in price, guests (pax), and cake layers.
+    */
+    'packages' => [
+        'Package A' => ['price' => 200000, 'guests' => 100, 'cake_layers' => 4],
+        'Package B' => ['price' => 160000, 'guests' => 70, 'cake_layers' => 3],
+        'Package C' => ['price' => 130000, 'guests' => 50, 'cake_layers' => 2],
+    ],
+    'package_inclusions' => [
+        'Hotel for Dress-up', 'Reception Area', 'Bridal Car', 'Cake', 'Bridal Dress', 'Bridal Entourage', 'Confetti/Poppers',
+        'Photo/Video (with Pre-nup)', 'Decor with Calling', 'Make-up (10 persons)', 'Emcee with DJ', 'Invitation (30 pcs.)',
+        'Give-away (30 pcs.)', 'Wine for Toasting',
+    ],
+
+    /*
     | Double-booking detection scope.
     | 'date_venue' — conflict when an active booking shares the same event date AND venue (manuscript definition).
     | 'date'       — conflict when any active booking exists on the same event date.

@@ -87,18 +87,19 @@
                     @else
                         <p class="text-sm text-stone-600">
                             This sends <strong>{{ $user->wedding_date->format('l, F j, Y') }}</strong> to <strong>{{ $user->preferredPlanner->name }}</strong>'s bookings.
-                            They'll set the price and confirm it.
+                            They'll confirm it.
                         </p>
                         <div class="grid gap-5 sm:grid-cols-2">
                             <div>
-                                <label for="package" class="label">Package</label>
-                                <select id="package" name="package" required @class(['input', 'input-error' => $errors->has('package')])>
-                                    <option value="">Choose a package</option>
-                                    @foreach ($packages as $p)
-                                        <option value="{{ $p }}" @selected(old('package') === $p)>{{ $p }}</option>
-                                    @endforeach
-                                </select>
-                                @error('package')<p class="error-text">{{ $message }}</p>@enderror
+                                <span class="label">Package</span>
+                                @if ($user->wedding_package)
+                                    <div class="flex items-center justify-between gap-2 rounded-lg bg-stone-50 px-3 py-2.5 text-sm ring-1 ring-line">
+                                        <span><strong>{{ $user->wedding_package }}</strong> · ₱{{ number_format(\App\Models\Booking::packagePrice($user->wedding_package) ?? 0, 0) }}</span>
+                                        <a href="{{ route('client.package') }}" class="link">Change</a>
+                                    </div>
+                                @else
+                                    <a href="{{ route('client.package') }}" class="btn-secondary w-full">Choose your package first</a>
+                                @endif
                             </div>
                             <div>
                                 <label for="venue" class="label">Wedding venue</label>

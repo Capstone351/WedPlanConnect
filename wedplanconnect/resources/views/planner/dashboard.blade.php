@@ -55,6 +55,7 @@
                             @else
                                 <span class="badge-gray">No budget yet</span>
                             @endif
+                            @if ($c->wedding_package)<span class="badge-green">{{ $c->wedding_package }}</span>@endif
                             <span class="badge-brand">♥ {{ $c->favorite_suppliers_count }} {{ str('favorite')->plural($c->favorite_suppliers_count) }}</span>
                         </div>
                         <a href="{{ route('bookings.create', ['client_id' => $c->id]) }}" class="btn-primary btn-sm"><x-icon name="plus" class="size-4" /> Create booking</a>

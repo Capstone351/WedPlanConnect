@@ -48,6 +48,7 @@
                 ['My Planner', 'client.planner', 'client.planner*', 'user'],
                 ['Meetings', 'client.meetings', 'client.meetings*', 'chat'],
                 ['My Budget', 'client.budget', 'client.budget*', 'cash'],
+                ['Wedding Package', 'client.package', 'client.package*', 'clipboard'],
                 ['Supplier Catalog', 'client.catalog', 'client.catalog*', 'store'],
             ],
         ],

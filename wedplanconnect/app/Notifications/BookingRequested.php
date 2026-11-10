@@ -29,7 +29,7 @@ class BookingRequested extends Notification
         return (new MailMessage)
             ->subject("New booking from {$this->booking->client_name}")
             ->line("{$this->booking->client_name} sent you a booking for {$this->booking->event_date->format('F j, Y')} at {$this->booking->venue} ({$this->booking->package}).")
-            ->line('Set the price, then confirm it to generate their QR code.')
+            ->line('Package price: ₱'.number_format((float) $this->booking->total_amount, 2).'. Confirm it to generate their QR code.')
             ->action('Open the booking', route('bookings.show', $this->booking));
     }
 
@@ -40,7 +40,7 @@ class BookingRequested extends Notification
     {
         return [
             'title' => "New booking from {$this->booking->client_name}",
-            'body' => "{$this->booking->event_date->format('M j, Y')} · {$this->booking->venue} · {$this->booking->package} · price to be set",
+            'body' => "{$this->booking->event_date->format('M j, Y')} · {$this->booking->venue} · {$this->booking->package} · ₱".number_format((float) $this->booking->total_amount, 0),
             'url' => route('bookings.show', $this->booking),
         ];
     }

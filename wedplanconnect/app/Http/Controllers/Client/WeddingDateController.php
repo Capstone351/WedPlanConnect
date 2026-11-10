@@ -26,7 +26,6 @@ class WeddingDateController extends Controller
             'user' => $user,
             'booking' => $user->clientBookings()->active()->with('planner')->orderBy('event_date')->first(),
             'plannerBusyDates' => $this->plannerBusyDates($user),
-            'packages' => Booking::PACKAGES,
         ]);
     }
 
