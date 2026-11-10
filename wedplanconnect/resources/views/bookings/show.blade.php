@@ -359,7 +359,7 @@
                 </div>
                 @if (! $budget)
                     <div class="card-body text-sm text-stone-500">
-                        The couple hasn't set a budget yet. They can add it under <strong>My Budget</strong> when they log in.
+                        The couple hasn't shared a budget. Discuss it with them when you meet.
                     </div>
                 @else
                     @php

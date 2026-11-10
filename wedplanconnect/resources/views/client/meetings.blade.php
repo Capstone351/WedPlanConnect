@@ -30,7 +30,7 @@
                         <label for="mode" class="label">How you'd like to meet</label>
                         <select id="mode" name="mode" class="input">
                             @foreach ($modes as $value => $label)
-                                <option value="{{ $value }}" @selected(old('mode', 'in_person') === $value)>{{ $label }}</option>
+                                <option value="{{ $value }}" @selected(old('mode', request('mode', 'in_person')) === $value)>{{ $label }}</option>
                             @endforeach
                         </select>
                     </div>

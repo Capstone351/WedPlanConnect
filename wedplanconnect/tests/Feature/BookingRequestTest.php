@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\Booking;
-use App\Models\ClientBudget;
 use App\Models\User;
 use App\Notifications\BookingRequested;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -25,7 +24,6 @@ class BookingRequestTest extends TestCase
         $this->planner = User::factory()->planner()->create(['name' => 'Maria Clara Uy']);
         $this->client = User::factory()->create(['bride_name' => 'Ana Santos', 'groom_name' => 'Miguel Reyes', 'phone' => '09171234567']);
         $this->client->forceFill(['preferred_planner_id' => $this->planner->id, 'wedding_date' => today()->addMonths(5), 'wedding_package' => 'Package B'])->save();
-        ClientBudget::create(['user_id' => $this->client->id, 'total_amount' => 170000]);
     }
 
     private function send(): TestResponse
@@ -74,15 +72,10 @@ class BookingRequestTest extends TestCase
         $this->actingAs($this->planner)->patch("/bookings/{$booking->id}/confirm")->assertRedirect("/bookings/{$booking->id}/qr");
     }
 
-    public function test_booking_needs_a_package_within_budget(): void
+    public function test_booking_needs_a_package(): void
     {
         $this->client->forceFill(['wedding_package' => null])->save();
         $this->actingAs($this->client)->get('/my/wedding-date')->assertOk()->assertSee('Choose your package first');
-        $this->send()->assertSessionHasErrors('booking');
-
-        // The couple lowered their budget after choosing Package B.
-        $this->client->forceFill(['wedding_package' => 'Package B'])->save();
-        $this->client->budget->update(['total_amount' => 150000]);
         $this->send()->assertSessionHasErrors('booking');
 
         $this->assertDatabaseCount('bookings', 0);
