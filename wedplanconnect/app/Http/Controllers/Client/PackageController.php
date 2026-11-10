@@ -10,24 +10,25 @@ use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 /**
- * Couples choose a wedding package that fits their budget. When no package fits,
- * they are asked to book a meeting with their planner instead.
+ * After setting their wedding date, couples choose a wedding package. When no package
+ * fits their budget, they book an in-person meeting with their planner to discuss it.
  */
 class PackageController extends Controller
 {
+    /** Pre-filled reason for the meeting when no package fits. */
+    public const MEETING_AGENDA = "Our budget doesn't fit the packages. We'd like to meet in person to discuss it.";
+
     public function edit(Request $request): View
     {
         $user = $request->user();
-        $packages = Booking::packages();
-        $budget = $user->budget ? (float) $user->budget->total_amount : null;
 
         return view('client.packages', [
-            'packages' => $packages,
+            'packages' => Booking::packages(),
             'inclusions' => config('wedplan.package_inclusions'),
-            'budget' => $budget,
             'chosen' => $user->wedding_package,
+            'hasDate' => (bool) $user->wedding_date,
             'booking' => $user->clientBookings()->active()->first(),
-            'belowAll' => $budget !== null && $budget < min(array_column($packages, 'price')),
+            'meetingUrl' => route('client.meetings', ['agenda' => self::MEETING_AGENDA, 'mode' => 'in_person']),
         ]);
     }
 
@@ -39,19 +40,15 @@ class PackageController extends Controller
             return back()->withErrors(['package' => 'Your booking has been made, so please ask your planner to change your package.']);
         }
 
+        if (! $user->wedding_date) {
+            return redirect()->route('client.wedding-date')->withErrors(['package' => 'Please set your wedding date first, then choose your package.']);
+        }
+
         $data = $request->validate(['package' => ['required', Rule::in(array_keys(Booking::packages()))]]);
-
-        if (! $user->budget) {
-            return redirect()->route('client.budget')->withErrors(['package' => 'Please set your budget first, so we can show which packages fit.']);
-        }
-
-        $price = Booking::packagePrice($data['package']);
-        if ($price > (float) $user->budget->total_amount) {
-            return back()->withErrors(['package' => "{$data['package']} is ₱".number_format($price - (float) $user->budget->total_amount, 0).' above your budget. Choose another package or book a meeting with your planner.']);
-        }
 
         $user->forceFill(['wedding_package' => $data['package']])->save();
 
-        return redirect()->route('client.package')->with('status', "You chose {$data['package']} (₱".number_format($price, 0).'). It will be included when you send your booking.');
+        return redirect()->route('client.package')
+            ->with('status', "You chose {$data['package']} (₱".number_format(Booking::packagePrice($data['package']), 0).'). It will be included when you send your booking.');
     }
 }

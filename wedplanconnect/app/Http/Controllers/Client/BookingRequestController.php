@@ -68,14 +68,8 @@ class BookingRequestController extends Controller
             $fail('Please save a wedding date in the future first.');
         }
 
-        // The package must still fit the budget, which the couple may have lowered since choosing it.
-        $price = Booking::packagePrice($user->wedding_package);
-        if ($price === null) {
+        if (Booking::packagePrice($user->wedding_package) === null) {
             $fail('Please choose your wedding package first.');
-        }
-
-        if (! $user->budget || $price > (float) $user->budget->total_amount) {
-            $fail("{$user->wedding_package} is above your budget. Choose another package, or book a meeting with your planner.");
         }
 
         if (! $user->phone) {

@@ -52,8 +52,6 @@
                             @endif
                             @if ($c->budget)
                                 <span class="badge-gold">Budget ₱{{ number_format((float) $c->budget->total_amount, 0) }}@if ($c->budget->guest_count) · {{ $c->budget->guest_count }} guests @endif</span>
-                            @else
-                                <span class="badge-gray">No budget yet</span>
                             @endif
                             @if ($c->wedding_package)<span class="badge-green">{{ $c->wedding_package }}</span>@endif
                             <span class="badge-brand">♥ {{ $c->favorite_suppliers_count }} {{ str('favorite')->plural($c->favorite_suppliers_count) }}</span>

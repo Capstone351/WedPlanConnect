@@ -4,9 +4,8 @@
             $me = auth()->user();
             $ready = [
                 ['calendar', 'Set your wedding date', $me->wedding_date ? $me->wedding_date->format('l, F j, Y') : null, route('client.wedding-date'), 'So your planner knows when you want to marry.'],
+                ['clipboard', 'Choose your package', $me->wedding_package ? $me->wedding_package.' · ₱'.number_format(\App\Models\Booking::packagePrice($me->wedding_package) ?? 0, 0) : null, route('client.package'), 'After your date, pick Package A, B, or C.'],
                 ['user', 'Choose your Wedding Planner', $me->preferredPlanner?->name, route('client.planner'), 'Pick the planner you would like to work with.'],
-                ['cash', 'Set your budget', $me->budget ? '₱'.number_format((float) $me->budget->total_amount, 0) : null, route('client.budget'), 'Your planner will plan within it.'],
-                ['clipboard', 'Choose your package', $me->wedding_package ? $me->wedding_package.' · ₱'.number_format(\App\Models\Booking::packagePrice($me->wedding_package) ?? 0, 0) : null, route('client.package'), 'Pick the package that fits your budget.'],
                 ['heart', 'Save favorite suppliers', ($n = $me->favoriteSuppliers()->count()) ? $n.' '.str('favorite')->plural($n) : null, route('client.catalog'), 'Tap the heart on suppliers you like.'],
             ];
             $doneCount = collect($ready)->filter(fn ($s) => $s[2])->count();
@@ -111,25 +110,6 @@
             </div>
 
             <div class="space-y-6">
-                @php $myBudget = auth()->user()->budget; @endphp
-                <div class="card">
-                    <div class="card-header">
-                        <h2 class="card-title">Your budget</h2>
-                        <a href="{{ route('client.budget') }}" class="text-sm link">{{ $myBudget ? 'Update' : 'Set budget' }}</a>
-                    </div>
-                    <div class="card-body text-sm">
-                        @if ($myBudget)
-                            <div class="flex items-end justify-between gap-3">
-                                <div class="font-display text-3xl font-semibold tabular-nums">₱{{ number_format((float) $myBudget->total_amount, 0) }}</div>
-                                @if ($myBudget->guest_count)<div class="text-xs text-stone-500">{{ number_format($myBudget->guest_count) }} guests</div>@endif
-                            </div>
-                            <p class="mt-1 text-xs text-stone-500">Shared with your planner, {{ $booking->planner->name }}.</p>
-                        @else
-                            <p class="text-stone-600">Let your planner know how much you'd like to spend, so they can plan suppliers and décor within it.</p>
-                            <a href="{{ route('client.budget') }}" class="btn-primary btn-sm mt-3">Set my budget</a>
-                        @endif
-                    </div>
-                </div>
                 <div class="card">
                     <div class="card-header"><h2 class="card-title">Your suppliers</h2></div>
                     <ul class="divide-y divide-stone-100 text-sm">

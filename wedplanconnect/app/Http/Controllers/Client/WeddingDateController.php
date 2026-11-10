@@ -63,6 +63,11 @@ class WeddingDateController extends Controller
             ? ' '.$user->preferredPlanner->name.' can now see it.'
             : ' Your Wedding Planner will see it.';
 
+        // Next step after the date: choosing a package.
+        if (! $user->wedding_package) {
+            return redirect()->route('client.package')->with('status', $message.' Next, choose your wedding package.');
+        }
+
         return redirect()->route('client.wedding-date')->with('status', $message);
     }
 
