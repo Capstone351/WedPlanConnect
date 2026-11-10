@@ -8,8 +8,8 @@
                         <tr>
                             <td class="whitespace-nowrap">{{ $a->booking->event_date->format('M j, Y') }}</td>
                             <td class="font-medium">{{ $a->booking->client_name }}</td>
-                            <td>{{ $a->booking->venue }}</td>
-                            <td>{{ $a->booking->package }}</td>
+                            <td>{{ $a->booking->venueLabel() }}</td>
+                            <td>{{ $a->booking->packageLabel() }}</td>
                             <td><span class="badge-{{ $a->booking->statusBadge() }}">{{ ucfirst($a->booking->status) }}</span></td>
                             <td><span class="badge-{{ \App\Models\BookingSupplier::badge($a->status) }}">{{ ucfirst($a->status) }}</span></td>
                             <td class="text-right"><a href="{{ route('vendor.bookings.show', $a->booking_id) }}" class="btn-secondary btn-sm">Details</a></td>

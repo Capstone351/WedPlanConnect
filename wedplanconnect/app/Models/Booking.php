@@ -148,11 +148,16 @@ class Booking extends Model
      * Finds an active booking that conflicts with the given slot.
      * Scope comes from config('wedplan.conflict_scope'): 'date_venue' (default) or 'date'.
      */
-    public static function findConflict(string $eventDate, string $venue, ?int $ignoreId = null): ?self
+    public static function findConflict(string $eventDate, ?string $venue, ?int $ignoreId = null): ?self
     {
         $query = self::active()->whereDate('event_date', $eventDate);
 
         if (config('wedplan.conflict_scope') === 'date_venue') {
+            // No venue decided yet, so it can't clash with another wedding's venue.
+            if (blank($venue)) {
+                return null;
+            }
+
             $query->whereRaw('LOWER(TRIM(venue)) = ?', [Str::lower(trim($venue))]);
         }
 
@@ -161,6 +166,31 @@ class Booking extends Model
         }
 
         return $query->first();
+    }
+
+    public function venueLabel(): string
+    {
+        return $this->venue ?? 'Venue to be discussed';
+    }
+
+    public function packageLabel(): string
+    {
+        return $this->package ?? 'Package to be discussed';
+    }
+
+    /**
+     * What still has to be agreed before the booking can be confirmed,
+     * e.g. for a couple who sent their booking before meeting the planner.
+     *
+     * @return array<int, string>
+     */
+    public function missingBeforeConfirm(): array
+    {
+        return array_keys(array_filter([
+            'venue' => blank($this->venue),
+            'package' => blank($this->package),
+            'price' => (float) $this->total_amount <= 0,
+        ]));
     }
 
     public function totalPaid(): float

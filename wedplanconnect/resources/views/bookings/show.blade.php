@@ -4,7 +4,7 @@
     $active = in_array($booking->status, ['pending', 'confirmed']);
 @endphp
 <x-layouts.app :title="'Booking #'.$booking->id" :heading="$booking->client_name"
-    :subheading="'Booking #'.$booking->id.' · '.$booking->event_date->format('l, F j, Y').' · '.$booking->venue">
+    :subheading="'Booking #'.$booking->id.' · '.$booking->event_date->format('l, F j, Y').' · '.$booking->venueLabel()">
     <x-slot:actions>
         <span class="badge-{{ $booking->statusBadge() }} px-3 py-1 text-sm">{{ ucfirst($booking->status) }}</span>
         @if ($active)
@@ -35,11 +35,11 @@
         @endif
     </x-slot:actions>
 
-    @if ($booking->status === 'pending' && (float) $booking->total_amount <= 0)
+    @if ($booking->status === 'pending' && ($missing = $booking->missingBeforeConfirm()))
         <div class="mb-6 flex flex-wrap items-center gap-3 rounded-xl border border-gold-300 bg-gold-50 px-4 py-3 text-sm text-ink print:hidden">
             <x-icon name="cash" class="size-5 shrink-0 text-gold-600" />
-            <span class="flex-1">The couple sent this booking ({{ $booking->package }}). Set the price before confirming it.</span>
-            <a href="{{ route('bookings.edit', $booking) }}" class="btn-gold">Set the price</a>
+            <span class="flex-1">Still to agree with the couple: <strong>{{ \Illuminate\Support\Arr::join($missing, ', ', ' and ') }}</strong>. Set {{ count($missing) > 1 ? 'them' : 'it' }} before confirming this booking.</span>
+            <a href="{{ route('bookings.edit', $booking) }}" class="btn-gold">Fill in details</a>
         </div>
     @endif
 
@@ -467,7 +467,7 @@
             <div class="card">
                 <div class="card-header"><h2 class="card-title">Details</h2></div>
                 <dl class="card-body space-y-3 text-sm">
-                    <div class="flex justify-between gap-4"><dt class="text-stone-500">Package</dt><dd class="text-right font-medium">{{ $booking->package }}</dd></div>
+                    <div class="flex justify-between gap-4"><dt class="text-stone-500">Package</dt><dd class="text-right font-medium">{{ $booking->packageLabel() }}</dd></div>
                     <div class="flex justify-between gap-4"><dt class="text-stone-500">Planner</dt><dd class="text-right">{{ $booking->planner->name }}</dd></div>
                     <div class="flex justify-between gap-4"><dt class="text-stone-500">Client account</dt><dd class="text-right">{{ $booking->client->name }}<br><span class="text-xs text-stone-500">{{ $booking->client->email }}</span></dd></div>
                     <div class="flex justify-between gap-4"><dt class="text-stone-500">Contact</dt><dd class="text-right">{{ $booking->contact_number }}</dd></div>

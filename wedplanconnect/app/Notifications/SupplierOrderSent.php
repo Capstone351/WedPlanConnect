@@ -37,7 +37,7 @@ class SupplierOrderSent extends Notification
         $mail = (new MailMessage)
             ->subject("New order: {$booking->client_name} wedding on {$booking->event_date->format('M j, Y')}")
             ->greeting("Hello {$this->assignment->supplier->name},")
-            ->line("{$booking->planner->name} of ".config('wedplan.business_name')." has sent you an order for a wedding on {$booking->event_date->format('l, F j, Y')} at {$booking->venue}.");
+            ->line("{$booking->planner->name} of ".config('wedplan.business_name')." has sent you an order for a wedding on {$booking->event_date->format('l, F j, Y')} at {$booking->venueLabel()}.");
 
         foreach ($this->items as $item) {
             $mail->line("• {$item->product->name} × {$item->quantity}, ready by {$item->due_date?->format('M j, Y')}".($item->notes ? " ({$item->notes})" : ''));

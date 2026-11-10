@@ -52,7 +52,7 @@ class BookingRequestTest extends TestCase
         $this->actingAs($this->planner)->get("/notifications/{$notification->id}")->assertRedirect(route('bookings.show', $booking));
 
         $this->actingAs($this->planner)->get('/bookings')->assertOk()->assertSee('Ana Santos &amp; Miguel Reyes', false);
-        $this->actingAs($this->planner)->get("/bookings/{$booking->id}")->assertOk()->assertDontSee('Set the price before confirming it.');
+        $this->actingAs($this->planner)->get("/bookings/{$booking->id}")->assertOk()->assertDontSee('Still to agree with the couple');
         $this->actingAs($this->planner)->patch("/bookings/{$booking->id}/confirm")->assertRedirect("/bookings/{$booking->id}/qr");
         $this->actingAs($this->client)->get('/my/wedding-date')->assertOk()->assertSee('Your wedding is booked for');
 
@@ -72,19 +72,44 @@ class BookingRequestTest extends TestCase
         $this->actingAs($this->planner)->patch("/bookings/{$booking->id}/confirm")->assertRedirect("/bookings/{$booking->id}/qr");
     }
 
-    public function test_booking_needs_a_package(): void
+    public function test_couple_can_send_their_booking_before_choosing_a_package_or_venue(): void
     {
-        $this->client->forceFill(['wedding_package' => null])->save();
-        $this->actingAs($this->client)->get('/my/wedding-date')->assertOk()->assertSee('Choose your package first');
-        $this->send()->assertSessionHasErrors('booking');
+        $this->client->forceFill(['wedding_package' => null, 'wedding_venue' => 'Old venue'])->save();
+        $this->actingAs($this->client)->get('/my/wedding-date')->assertOk()->assertSee('To be discussed with your planner');
 
-        $this->assertDatabaseCount('bookings', 0);
+        $this->actingAs($this->client)->post('/my/booking-request', ['venue' => ''])
+            ->assertSessionHasNoErrors()->assertSessionHas('status', fn ($s) => str_contains($s, 'Book a meeting with them to agree on the venue, package and price.'));
+
+        $booking = Booking::sole();
+        $this->assertSame([null, null, 0.0], [$booking->venue, $booking->package, (float) $booking->total_amount]);
+        $this->assertSame('Old venue', $this->client->fresh()->wedding_venue);
+        $this->assertStringContainsString('Venue to be discussed · Package to be discussed · price to be discussed', $this->planner->notifications()->sole()->data['body']);
+
+        $this->actingAs($this->client)->get('/my/wedding-date')->assertOk()->assertSee('Meet')->assertSee('Book a meeting');
+        $this->actingAs($this->planner)->get('/bookings')->assertOk()->assertSee('Venue to be discussed');
+        $this->actingAs($this->planner)->get("/bookings/{$booking->id}")->assertOk()->assertSee('venue, package and price');
+
+        // The planner fills in what was agreed at the meeting, then confirms.
+        $this->actingAs($this->planner)->patch("/bookings/{$booking->id}/confirm")->assertSessionHasErrors('status');
+        $this->actingAs($this->planner)->put("/bookings/{$booking->id}", [
+            'client_id' => $this->client->id, 'client_name' => $booking->client_name, 'contact_number' => '09171234567',
+            'event_date' => $booking->event_date->toDateString(), 'venue' => 'Casa Gorordo Museum', 'package' => 'Custom Package', 'total_amount' => 110000,
+        ])->assertSessionHasNoErrors();
+        $this->actingAs($this->planner)->patch("/bookings/{$booking->id}/confirm")->assertRedirect("/bookings/{$booking->id}/qr");
+    }
+
+    public function test_bookings_without_a_venue_do_not_clash_with_each_other(): void
+    {
+        $other = Booking::factory()->create(['event_date' => today()->addMonths(5), 'venue' => null, 'package' => null]);
+
+        $this->actingAs($this->client)->post('/my/booking-request', ['venue' => ''])->assertSessionHasNoErrors();
+
+        $this->assertDatabaseCount('bookings', 2);
+        $this->assertNull($other->fresh()->venue);
     }
 
     public function test_booking_needs_a_planner_a_date_and_a_free_slot(): void
     {
-        $this->actingAs($this->client)->post('/my/booking-request', ['venue' => ''])->assertSessionHasErrors('venue');
-
         $this->client->forceFill(['preferred_planner_id' => null])->save();
         $this->send()->assertSessionHasErrors('booking');
 

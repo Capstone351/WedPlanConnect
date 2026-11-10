@@ -19,11 +19,13 @@
                 </div>
                 <div>
                     <label for="venue" class="label">Venue</label>
-                    <input id="venue" name="venue" value="{{ old('venue', $booking->venue) }}" required maxlength="200" placeholder="e.g. Casa Gorordo Museum, Cebu City" class="input">
+                    <input id="venue" name="venue" value="{{ old('venue', $booking->venue) }}" maxlength="200" placeholder="e.g. Casa Gorordo Museum, Cebu City" class="input">
+                    <p class="hint">Can stay blank until agreed with the couple. Needed before confirming.</p>
                 </div>
                 <div>
                     <label for="package" class="label">Package</label>
-                    <input id="package" name="package" list="packages" value="{{ old('package', $booking->package) }}" required maxlength="100" class="input">
+                    <input id="package" name="package" list="packages" value="{{ old('package', $booking->package) }}" maxlength="100" class="input">
+                    <p class="hint">Can stay blank until agreed with the couple. Needed before confirming.</p>
                     <datalist id="packages">@foreach ($packages as $p)<option value="{{ $p }}">@endforeach</datalist>
                 </div>
                 <div>

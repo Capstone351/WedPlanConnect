@@ -29,7 +29,7 @@
                     <div>
                         <div class="eyebrow text-gold-300">Next engagement</div>
                         <div class="mt-2 font-display text-3xl font-semibold tracking-tight">{{ $next->booking->client_name }}</div>
-                        <div class="mt-1 text-brand-100/90">{{ $next->booking->event_date->format('l, F j, Y') }} · {{ $next->booking->venue }}</div>
+                        <div class="mt-1 text-brand-100/90">{{ $next->booking->event_date->format('l, F j, Y') }} · {{ $next->booking->venueLabel() }}</div>
                         <a href="{{ route('vendor.bookings.show', $next->booking_id) }}" class="btn-gold mt-5">View details →</a>
                     </div>
                     <div class="text-center">
@@ -121,8 +121,8 @@
                             <tr>
                                 <td class="whitespace-nowrap">{{ $a->booking->event_date->format('M j, Y') }}</td>
                                 <td class="font-medium">{{ $a->booking->client_name }}</td>
-                                <td>{{ $a->booking->venue }}</td>
-                                <td>{{ $a->booking->package }}</td>
+                                <td>{{ $a->booking->venueLabel() }}</td>
+                                <td>{{ $a->booking->packageLabel() }}</td>
                                 <td><span class="badge-{{ \App\Models\BookingSupplier::badge($a->status) }}">{{ ucfirst($a->status) }}</span></td>
                                 <td class="text-right"><a href="{{ route('vendor.bookings.show', $a->booking_id) }}" class="btn-secondary btn-sm">Details</a></td>
                             </tr>

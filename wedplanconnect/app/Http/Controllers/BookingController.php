@@ -11,6 +11,7 @@ use App\Support\Network;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
@@ -161,9 +162,9 @@ class BookingController extends Controller
             return back()->withErrors(['status' => 'Only pending bookings can be confirmed.']);
         }
 
-        // Bookings sent by the couple start without a price.
-        if ((float) $booking->total_amount <= 0) {
-            return back()->withErrors(['status' => 'Set the package price (Edit → Total amount) before confirming this booking.']);
+        // Couples can send their booking before these are agreed; the planner fills them in first.
+        if ($missing = $booking->missingBeforeConfirm()) {
+            return back()->withErrors(['status' => 'Set the '.Arr::join($missing, ', ', ' and ').' (Edit) before confirming this booking.']);
         }
 
         $booking->update(['status' => 'confirmed']);
@@ -266,8 +267,8 @@ class BookingController extends Controller
             'client_name' => ['required', 'string', 'max:150'],
             'contact_number' => ['required', 'string', 'max:20', 'regex:/^[0-9+\-\s()]{7,20}$/'],
             'event_date' => array_filter(['required', 'date', $dateChanged ? 'after_or_equal:today' : null]),
-            'venue' => ['required', 'string', 'max:200'],
-            'package' => ['required', 'string', 'max:100'],
+            'venue' => ['nullable', 'string', 'max:200'],
+            'package' => ['nullable', 'string', 'max:100'],
             'total_amount' => ['required', 'numeric', 'min:0', 'max:99999999.99'],
         ], [
             'event_date.after_or_equal' => 'The event date cannot be in the past.',
@@ -276,7 +277,7 @@ class BookingController extends Controller
     }
 
     /** Real-time double-booking detection (E1 of UC-03). */
-    private function guardConflict(string $eventDate, string $venue, ?int $ignoreId = null): void
+    private function guardConflict(string $eventDate, ?string $venue, ?int $ignoreId = null): void
     {
         $conflict = Booking::findConflict($eventDate, $venue, $ignoreId);
 

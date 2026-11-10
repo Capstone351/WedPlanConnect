@@ -52,7 +52,7 @@
                             <tr>
                                 <td class="whitespace-nowrap">{{ $b->event_date->format('M j, Y') }}<div class="text-xs text-stone-500">{{ $b->daysToGo() }} days to go</div></td>
                                 <td><a href="{{ route('bookings.show', $b) }}" class="link">{{ $b->client_name }}</a></td>
-                                <td>{{ $b->venue }}</td>
+                                <td>{{ $b->venueLabel() }}</td>
                                 <td>{{ $b->planner->name }}</td>
                                 <td><span class="badge-{{ $b->statusBadge() }}">{{ ucfirst($b->status) }}</span></td>
                             </tr>

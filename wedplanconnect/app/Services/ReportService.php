@@ -73,7 +73,7 @@ class ReportService
         return [
             'columns' => ['#' => 'left', 'Client' => 'left', 'Event Date' => 'left', 'Venue' => 'left', 'Package' => 'left', 'Status' => 'left', 'Contract' => 'right', 'Paid' => 'right'],
             'rows' => $bookings->map(fn ($b) => [
-                $b->id, $b->client_name, $b->event_date->format('M j, Y'), $b->venue, $b->package, ucfirst($b->status),
+                $b->id, $b->client_name, $b->event_date->format('M j, Y'), $b->venueLabel(), $b->packageLabel(), ucfirst($b->status),
                 $this->money($b->total_amount), $this->money($b->payments_sum_amount),
             ])->all(),
             'summary' => collect(Booking::STATUSES)->mapWithKeys(fn ($s) => [ucfirst($s) => $bookings->where('status', $s)->count()])->all()
@@ -197,7 +197,7 @@ class ReportService
         return [
             'columns' => ['Event Date' => 'left', 'Days to Go' => 'right', 'Client' => 'left', 'Venue' => 'left', 'Status' => 'left', 'Open Tasks' => 'right', 'Suppliers Confirmed' => 'right', 'Balance' => 'right'],
             'rows' => $bookings->map(fn ($b) => [
-                $b->event_date->format('D, M j, Y'), $b->daysToGo(), $b->client_name, $b->venue, ucfirst($b->status),
+                $b->event_date->format('D, M j, Y'), $b->daysToGo(), $b->client_name, $b->venueLabel(), ucfirst($b->status),
                 $b->open_tasks, "{$b->suppliers_confirmed} / {$b->suppliers_total}",
                 $this->money((float) $b->total_amount - (float) $b->payments_sum_amount),
             ])->all(),

@@ -6,9 +6,14 @@
                 <div class="eyebrow text-gold-300">{{ $booking->status === 'pending' ? 'Booking sent for' : 'Your wedding is booked for' }}</div>
                 <div class="font-display text-4xl font-semibold text-white sm:text-5xl">{{ $booking->event_date->format('l, F j, Y') }}</div>
                 <x-ornament class="mx-auto mt-2 w-48" :light="true" />
-                <p class="mt-2 text-brand-100/85">{{ $booking->venue }} · {{ $booking->package }} · {{ max(0, $booking->daysToGo()) }} days to go</p>
-                @if ($booking->status === 'pending')
-                    <p class="mt-4 max-w-md text-sm text-brand-100/70">Waiting for <strong class="text-gold-200">{{ $booking->planner->name }}</strong> to set the price and confirm your booking.</p>
+                <p class="mt-2 text-brand-100/85">{{ $booking->venueLabel() }} · {{ $booking->packageLabel() }} · {{ max(0, $booking->daysToGo()) }} days to go</p>
+                @if ($booking->status === 'pending' && $booking->missingBeforeConfirm())
+                    <p class="mt-4 max-w-md text-sm text-brand-100/70">
+                        Meet <strong class="text-gold-200">{{ $booking->planner->name }}</strong> to agree on the {{ \Illuminate\Support\Arr::join($booking->missingBeforeConfirm(), ', ', ' and ') }}. They'll confirm your booking after that.
+                    </p>
+                    <a href="{{ route('client.meetings', ['mode' => 'in_person', 'agenda' => \App\Http\Controllers\Client\PackageController::MEETING_AGENDA]) }}" class="btn-gold mt-3">Book a meeting</a>
+                @elseif ($booking->status === 'pending')
+                    <p class="mt-4 max-w-md text-sm text-brand-100/70">Waiting for <strong class="text-gold-200">{{ $booking->planner->name }}</strong> to confirm your booking.</p>
                 @endif
                 <p class="mt-4 max-w-md text-sm text-brand-100/70">Need a different date? Please contact your planner, <strong class="text-gold-200">{{ $booking->planner->name }}</strong>, so they can check availability.</p>
             </div>
@@ -87,24 +92,25 @@
                     @else
                         <p class="text-sm text-stone-600">
                             This sends <strong>{{ $user->wedding_date->format('l, F j, Y') }}</strong> to <strong>{{ $user->preferredPlanner->name }}</strong>'s bookings.
-                            They'll confirm it.
+                            Still deciding on the package or venue? You can leave them for now and agree on them when you meet your planner.
                         </p>
                         <div class="grid gap-5 sm:grid-cols-2">
                             <div>
-                                <span class="label">Package</span>
-                                @if ($user->wedding_package)
-                                    <div class="flex items-center justify-between gap-2 rounded-lg bg-stone-50 px-3 py-2.5 text-sm ring-1 ring-line">
+                                <span class="label">Package <span class="font-normal text-stone-400">(optional)</span></span>
+                                <div class="flex items-center justify-between gap-2 rounded-lg bg-stone-50 px-3 py-2.5 text-sm ring-1 ring-line">
+                                    @if ($user->wedding_package)
                                         <span><strong>{{ $user->wedding_package }}</strong> · ₱{{ number_format(\App\Models\Booking::packagePrice($user->wedding_package) ?? 0, 0) }}</span>
                                         <a href="{{ route('client.package') }}" class="link">Change</a>
-                                    </div>
-                                @else
-                                    <a href="{{ route('client.package') }}" class="btn-secondary w-full">Choose your package first</a>
-                                @endif
+                                    @else
+                                        <span class="text-stone-500">To be discussed with your planner</span>
+                                        <a href="{{ route('client.package') }}" class="link">Choose one</a>
+                                    @endif
+                                </div>
                             </div>
                             <div>
-                                <label for="venue" class="label">Wedding venue</label>
-                                <input id="venue" name="venue" required maxlength="200" value="{{ old('venue', $user->wedding_venue) }}"
-                                    placeholder="e.g. Casa Gorordo Museum, Cebu City" @class(['input', 'input-error' => $errors->has('venue')])>
+                                <label for="venue" class="label">Wedding venue <span class="font-normal text-stone-400">(optional)</span></label>
+                                <input id="venue" name="venue" maxlength="200" value="{{ old('venue', $user->wedding_venue) }}"
+                                    placeholder="Leave blank if you're still deciding" @class(['input', 'input-error' => $errors->has('venue')])>
                                 @error('venue')<p class="error-text">{{ $message }}</p>@enderror
                             </div>
                         </div>
