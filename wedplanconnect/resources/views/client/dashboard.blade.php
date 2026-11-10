@@ -6,6 +6,7 @@
                 ['calendar', 'Set your wedding date', $me->wedding_date ? $me->wedding_date->format('l, F j, Y') : null, route('client.wedding-date'), 'So your planner knows when you want to marry.'],
                 ['user', 'Choose your Wedding Planner', $me->preferredPlanner?->name, route('client.planner'), 'Pick the planner you would like to work with.'],
                 ['cash', 'Set your budget', $me->budget ? '₱'.number_format((float) $me->budget->total_amount, 0) : null, route('client.budget'), 'Your planner will plan within it.'],
+                ['clipboard', 'Choose your package', $me->wedding_package ? $me->wedding_package.' · ₱'.number_format(\App\Models\Booking::packagePrice($me->wedding_package) ?? 0, 0) : null, route('client.package'), 'Pick the package that fits your budget.'],
                 ['heart', 'Save favorite suppliers', ($n = $me->favoriteSuppliers()->count()) ? $n.' '.str('favorite')->plural($n) : null, route('client.catalog'), 'Tap the heart on suppliers you like.'],
             ];
             $doneCount = collect($ready)->filter(fn ($s) => $s[2])->count();

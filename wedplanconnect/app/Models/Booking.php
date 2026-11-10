@@ -28,7 +28,23 @@ class Booking extends Model
     /** Statuses that occupy a date/venue slot for double-booking detection. */
     public const ACTIVE_STATUSES = ['pending', 'confirmed'];
 
-    public const PACKAGES = ['Classic Elegance', 'Garden Romance', 'Rustic Charm', 'Grand Ballroom', 'Beach Wedding', 'Intimate Ceremony', 'Custom Package'];
+    /**
+     * The wedding packages couples choose from, keyed by name, most expensive first.
+     *
+     * @return array<string, array{price: int, guests: int, cake_layers: int}>
+     */
+    public static function packages(): array
+    {
+        return collect(config('wedplan.packages'))->sortByDesc('price')->all();
+    }
+
+    /** Price of a wedding package, or null for anything else (e.g. a custom package). */
+    public static function packagePrice(?string $name): ?float
+    {
+        $price = self::packages()[$name]['price'] ?? null;
+
+        return $price === null ? null : (float) $price;
+    }
 
     protected function casts(): array
     {

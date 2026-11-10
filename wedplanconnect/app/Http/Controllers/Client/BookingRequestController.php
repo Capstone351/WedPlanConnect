@@ -9,22 +9,19 @@ use App\Notifications\BookingRequested;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 /**
  * Couples send their wedding details to their chosen planner as a pending booking,
- * so the planner no longer has to create it by hand. The planner sets the price and confirms it.
+ * so the planner no longer has to create it by hand. The price comes from their chosen package.
  */
 class BookingRequestController extends Controller
 {
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'package' => ['required', Rule::in(Booking::PACKAGES)],
             'venue' => ['required', 'string', 'max:200'],
         ], [
-            'package.required' => 'Please choose a package.',
             'venue.required' => 'Please enter your wedding venue.',
         ]);
 
@@ -42,8 +39,8 @@ class BookingRequestController extends Controller
                 'contact_number' => $user->phone,
                 'event_date' => $user->wedding_date,
                 'venue' => $data['venue'],
-                'package' => $data['package'],
-                'total_amount' => 0,
+                'package' => $user->wedding_package,
+                'total_amount' => Booking::packagePrice($user->wedding_package),
                 'status' => 'pending',
             ]);
         });
@@ -51,7 +48,7 @@ class BookingRequestController extends Controller
         $booking->planner->notify(new BookingRequested($booking));
 
         return redirect()->route('client.wedding-date')
-            ->with('status', "Your booking was sent to {$booking->planner->name}. They'll set the price and confirm it.");
+            ->with('status', "Your booking was sent to {$booking->planner->name}. They'll confirm it soon.");
     }
 
     /** Everything the planner needs must be filled in, and the slot must still be free. */
@@ -69,6 +66,16 @@ class BookingRequestController extends Controller
 
         if (! $user->wedding_date || ! $user->wedding_date->isFuture()) {
             $fail('Please save a wedding date in the future first.');
+        }
+
+        // The package must still fit the budget, which the couple may have lowered since choosing it.
+        $price = Booking::packagePrice($user->wedding_package);
+        if ($price === null) {
+            $fail('Please choose your wedding package first.');
+        }
+
+        if (! $user->budget || $price > (float) $user->budget->total_amount) {
+            $fail("{$user->wedding_package} is above your budget. Choose another package, or book a meeting with your planner.");
         }
 
         if (! $user->phone) {

@@ -42,7 +42,7 @@
                     <div>
                         <label for="agenda" class="label">What you'd like to talk about <span class="font-normal text-stone-400">(optional)</span></label>
                         <textarea id="agenda" name="agenda" rows="3" maxlength="500" class="input"
-                            placeholder="e.g. Theme ideas, package inclusions, budget">{{ old('agenda') }}</textarea>
+                            placeholder="e.g. Theme ideas, package inclusions, budget">{{ old('agenda', request('agenda')) }}</textarea>
                     </div>
                     <button class="btn-primary w-full">Send meeting request</button>
                 </form>

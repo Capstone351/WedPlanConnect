@@ -187,6 +187,8 @@ Route::middleware('auth')->group(function () {
         Route::put('/planner', [Client\PlannerChoiceController::class, 'update'])->name('planner.update');
         Route::get('/budget', [Client\BudgetController::class, 'edit'])->name('budget');
         Route::put('/budget', [Client\BudgetController::class, 'update'])->name('budget.update');
+        Route::get('/package', [Client\PackageController::class, 'edit'])->name('package');
+        Route::put('/package', [Client\PackageController::class, 'update'])->name('package.update');
         Route::post('/catalog/preferences', [Client\CatalogController::class, 'store'])->name('preferences.store');
         Route::delete('/catalog/preferences/{preference}', [Client\CatalogController::class, 'destroy'])->name('preferences.destroy');
     });

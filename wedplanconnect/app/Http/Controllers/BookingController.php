@@ -67,6 +67,8 @@ class BookingController extends Controller
                 'planner_id' => $client->preferred_planner_id,
                 'event_date' => $client->wedding_date?->isFuture() ? $client->wedding_date : null,
                 'venue' => $client->wedding_venue,
+                'package' => $client->wedding_package,
+                'total_amount' => Booking::packagePrice($client->wedding_package),
             ]);
         }
 
@@ -248,7 +250,7 @@ class BookingController extends Controller
             'booking' => $booking,
             'clients' => User::where('role', 'client')->with('preferredPlanner:id,name')->orderBy('name')->get(['id', 'name', 'email', 'phone', 'preferred_planner_id', 'wedding_date', 'wedding_date_alt', 'wedding_venue']),
             'planners' => User::where('role', 'planner')->orderBy('name')->get(['id', 'name']),
-            'packages' => Booking::PACKAGES,
+            'packages' => [...array_keys(Booking::packages()), 'Custom Package'],
         ];
     }
 
