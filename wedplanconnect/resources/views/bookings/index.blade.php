@@ -41,9 +41,9 @@
                         <tr>
                             <td>
                                 <a href="{{ route('bookings.show', $b) }}" class="font-medium link">{{ $b->client_name }}</a>
-                                <div class="text-xs text-stone-500">#{{ $b->id }} · {{ $b->package }}@if (auth()->user()->role === 'admin') · {{ $b->planner->name }}@endif</div>
+                                <div class="text-xs text-stone-500">#{{ $b->id }} · {{ $b->packageLabel() }}@if (auth()->user()->role === 'admin') · {{ $b->planner->name }}@endif</div>
                             </td>
-                            <td>{{ $b->venue }}</td>
+                            <td>{{ $b->venueLabel() }}</td>
                             <td class="whitespace-nowrap">{{ $b->event_date->format('M j, Y') }}</td>
                             <td><span class="badge-{{ $b->statusBadge() }}">{{ ucfirst($b->status) }}</span></td>
                             <td><span class="badge-{{ $pay[1] }}">{{ $pay[0] }}</span></td>

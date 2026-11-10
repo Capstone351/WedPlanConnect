@@ -66,7 +66,7 @@
                 <x-ornament class="w-56" :light="true" />
                 <div>
                     <p class="font-display text-lg text-gold-100">{{ $booking->event_date->format('l, F j, Y') }}</p>
-                    <p class="mt-1 text-sm text-brand-100/80">{{ $booking->venue }} · {{ $booking->package }} · Planner: {{ $booking->planner->name }}</p>
+                    <p class="mt-1 text-sm text-brand-100/80">{{ $booking->venueLabel() }} · {{ $booking->packageLabel() }} · Planner: {{ $booking->planner->name }}</p>
                 </div>
                 <x-progress-ring :value="$progress" :size="132" :dark="true" />
                 <div class="flex flex-wrap items-center justify-center gap-3">
@@ -156,7 +156,7 @@
                 <ul class="divide-y divide-stone-100 text-sm">
                     @foreach ($otherBookings as $b)
                         <li class="flex items-center justify-between px-5 py-3">
-                            <span>{{ $b->event_date->format('M j, Y') }} · {{ $b->venue }}</span>
+                            <span>{{ $b->event_date->format('M j, Y') }} · {{ $b->venueLabel() }}</span>
                             <span class="badge-{{ $b->statusBadge() }}">{{ ucfirst($b->status) }}</span>
                         </li>
                     @endforeach

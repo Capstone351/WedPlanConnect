@@ -30,7 +30,7 @@
                             @endphp
                             <tr @class(['bg-brand-50/60' => $selected?->id === $b->id])>
                                 <td><a href="{{ route('payments.index', ['booking_id' => $b->id]) }}" class="font-medium link">{{ $b->client_name }}</a><div class="text-xs text-stone-500">{{ $b->event_date->format('M j, Y') }}</div></td>
-                                <td>{{ $b->package }}</td>
+                                <td>{{ $b->packageLabel() }}</td>
                                 <td class="text-right tabular-nums">₱{{ number_format($b->total_amount, 2) }}</td>
                                 <td class="text-right tabular-nums">₱{{ number_format($paid, 2) }}</td>
                                 <td><span class="badge-{{ $st[1] }}">{{ $st[0] }}</span></td>

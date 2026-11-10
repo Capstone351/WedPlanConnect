@@ -2,7 +2,7 @@
     subheading="Every package includes the same inclusions. They differ in the number of guests and cake layers.">
     @if ($booking)
         <div class="mb-6 rounded-xl border border-gold-300 bg-gold-50 px-4 py-3 text-sm text-stone-700">
-            Your booking has been made with <strong>{{ $booking->package }}</strong>. To change your package, please contact your planner.
+            Your booking has been made with <strong>{{ $booking->packageLabel() }}</strong>. To change your package, please contact your planner.
         </div>
     @elseif (! $hasDate)
         <div class="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gold-300 bg-gold-50 px-4 py-3 text-sm text-stone-700">
@@ -13,7 +13,7 @@
 
     <div class="grid gap-6 lg:grid-cols-3">
         @foreach ($packages as $name => $package)
-            @php $isChosen = ($booking?->package ?? $chosen) === $name; @endphp
+            @php $isChosen = ($booking ? $booking->package : $chosen) === $name; @endphp
             <div @class(['card flex flex-col overflow-hidden', 'ring-2 ring-gold-400' => $isChosen])>
                 <div class="hero-panel rounded-none">
                     <div class="relative px-6 py-6 text-center">

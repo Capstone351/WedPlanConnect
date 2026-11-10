@@ -8,29 +8,33 @@ use App\Models\User;
 use App\Notifications\BookingRequested;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
  * Couples send their wedding details to their chosen planner as a pending booking,
- * so the planner no longer has to create it by hand. The price comes from their chosen package.
+ * so the planner no longer has to create it by hand. The price comes from their chosen package;
+ * the package and venue may be left for a meeting, and the planner fills them in before confirming.
  */
 class BookingRequestController extends Controller
 {
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'venue' => ['required', 'string', 'max:200'],
-        ], [
-            'venue.required' => 'Please enter your wedding venue.',
+            // Optional: the venue and package can be agreed with the planner at a meeting.
+            'venue' => ['nullable', 'string', 'max:200'],
         ]);
+        $venue = $data['venue'] ?? null;
 
-        $booking = DB::transaction(function () use ($request, $data) {
+        $booking = DB::transaction(function () use ($request, $venue) {
             // Lock the couple's row so a double click can't send two bookings.
             $user = User::lockForUpdate()->findOrFail($request->user()->id);
-            $this->guardReady($user, $data['venue']);
+            $this->guardReady($user, $venue);
 
-            $user->forceFill(['wedding_venue' => $data['venue']])->save();
+            if ($venue) {
+                $user->forceFill(['wedding_venue' => $venue])->save();
+            }
 
             return Booking::create([
                 'planner_id' => $user->preferred_planner_id,
@@ -38,9 +42,9 @@ class BookingRequestController extends Controller
                 'client_name' => $user->coupleNames() ?? $user->name,
                 'contact_number' => $user->phone,
                 'event_date' => $user->wedding_date,
-                'venue' => $data['venue'],
+                'venue' => $venue,
                 'package' => $user->wedding_package,
-                'total_amount' => Booking::packagePrice($user->wedding_package),
+                'total_amount' => Booking::packagePrice($user->wedding_package) ?? 0,
                 'status' => 'pending',
             ]);
         });
@@ -48,11 +52,13 @@ class BookingRequestController extends Controller
         $booking->planner->notify(new BookingRequested($booking));
 
         return redirect()->route('client.wedding-date')
-            ->with('status', "Your booking was sent to {$booking->planner->name}. They'll confirm it soon.");
+            ->with('status', "Your booking was sent to {$booking->planner->name}.".($booking->missingBeforeConfirm()
+                ? ' Book a meeting with them to agree on the '.Arr::join($booking->missingBeforeConfirm(), ', ', ' and ').'.'
+                : " They'll confirm it soon."));
     }
 
     /** Everything the planner needs must be filled in, and the slot must still be free. */
-    private function guardReady(User $user, string $venue): void
+    private function guardReady(User $user, ?string $venue): void
     {
         $fail = fn (string $message) => throw ValidationException::withMessages(['booking' => $message]);
 
@@ -66,10 +72,6 @@ class BookingRequestController extends Controller
 
         if (! $user->wedding_date || ! $user->wedding_date->isFuture()) {
             $fail('Please save a wedding date in the future first.');
-        }
-
-        if (Booking::packagePrice($user->wedding_package) === null) {
-            $fail('Please choose your wedding package first.');
         }
 
         if (! $user->phone) {

@@ -20,7 +20,7 @@
                     <h1 class="mt-3 font-display text-4xl font-semibold tracking-tight text-white sm:text-5xl">{{ $booking->client_name }}</h1>
                     <x-ornament class="mx-auto mt-5 w-56" :light="true" />
                     <p class="mt-4 font-display text-lg text-gold-100">{{ $booking->event_date->format('l, F j, Y') }}</p>
-                    <p class="mt-1 text-sm text-brand-100/80"><x-icon name="map" class="inline size-4" /> {{ $booking->venue }} · {{ $booking->package }}</p>
+                    <p class="mt-1 text-sm text-brand-100/80"><x-icon name="map" class="inline size-4" /> {{ $booking->venueLabel() }} · {{ $booking->packageLabel() }}</p>
                     <x-progress-ring :value="$progress" :size="140" :dark="true" class="mt-6" />
                 </div>
                 <div class="relative grid grid-cols-2 border-t border-gold-400/25 bg-black/15 sm:grid-cols-4">

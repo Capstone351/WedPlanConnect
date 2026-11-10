@@ -44,8 +44,8 @@
             <dl class="card-body space-y-3 text-sm">
                 <div class="flex justify-between gap-4"><dt class="text-stone-500">Event date</dt><dd class="font-medium">{{ $booking->event_date->format('l, F j, Y') }}</dd></div>
                 <div class="flex justify-between gap-4"><dt class="text-stone-500">Days to go</dt><dd>{{ max(0, $booking->daysToGo()) }}</dd></div>
-                <div class="flex justify-between gap-4"><dt class="text-stone-500">Venue</dt><dd class="text-right">{{ $booking->venue }}</dd></div>
-                <div class="flex justify-between gap-4"><dt class="text-stone-500">Package</dt><dd>{{ $booking->package }}</dd></div>
+                <div class="flex justify-between gap-4"><dt class="text-stone-500">Venue</dt><dd class="text-right">{{ $booking->venueLabel() }}</dd></div>
+                <div class="flex justify-between gap-4"><dt class="text-stone-500">Package</dt><dd>{{ $booking->packageLabel() }}</dd></div>
                 <div class="flex justify-between gap-4"><dt class="text-stone-500">Booking status</dt><dd><span class="badge-{{ $booking->statusBadge() }}">{{ ucfirst($booking->status) }}</span></dd></div>
                 <div class="flex justify-between gap-4"><dt class="text-stone-500">Your coordination status</dt><dd><span class="badge-{{ \App\Models\BookingSupplier::badge($assignment->status) }}">{{ ucfirst($assignment->status) }}</span></dd></div>
             </dl>

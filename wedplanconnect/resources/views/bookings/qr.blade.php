@@ -17,7 +17,7 @@
         <div class="mx-auto w-full max-w-md rounded-3xl border border-gold-300 bg-white p-8 text-center shadow-[0_18px_40px_-24px_rgba(74,31,46,0.5)] print:max-w-none print:shadow-none">
             <div class="eyebrow text-gold-700">{{ config('wedplan.business_name') }}</div>
             <h2 class="mt-3 font-display text-3xl font-semibold">{{ $booking->client_name }}</h2>
-            <p class="mt-1 text-sm text-stone-500">{{ $booking->event_date->format('F j, Y') }} · {{ $booking->venue }}</p>
+            <p class="mt-1 text-sm text-stone-500">{{ $booking->event_date->format('F j, Y') }} · {{ $booking->venueLabel() }}</p>
             <x-ornament class="mx-auto mt-4 w-40" />
             <div class="mx-auto mt-5 inline-block rounded-2xl border border-line bg-white p-4">{!! $qrSvg !!}</div>
             <p class="mt-5 font-display text-lg font-semibold">Scan to view your wedding preparations</p>

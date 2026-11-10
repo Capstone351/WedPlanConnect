@@ -10,7 +10,7 @@
                 <div>
                     <div class="eyebrow text-gold-300">Next wedding</div>
                     <div class="mt-2 font-display text-4xl font-semibold tracking-tight">{{ $featured->client_name }}</div>
-                    <div class="mt-2 text-brand-100/90">{{ $featured->event_date->format('l, F j, Y') }} · {{ $featured->venue }} · {{ $featured->package }}</div>
+                    <div class="mt-2 text-brand-100/90">{{ $featured->event_date->format('l, F j, Y') }} · {{ $featured->venueLabel() }} · {{ $featured->packageLabel() }}</div>
                     <a href="{{ route('bookings.show', $featured) }}" class="btn-gold mt-5">Open booking →</a>
                 </div>
                 <div class="flex items-center gap-7">
@@ -76,7 +76,7 @@
                             </div>
                             <div class="min-w-0 flex-1">
                                 <div class="truncate font-medium">{{ $b->client_name }}</div>
-                                <div class="truncate text-xs text-stone-500">{{ $b->venue }} · {{ $b->package }}</div>
+                                <div class="truncate text-xs text-stone-500">{{ $b->venueLabel() }} · {{ $b->packageLabel() }}</div>
                             </div>
                             <div class="hidden w-32 sm:block">
                                 <div class="h-1.5 rounded-full bg-stone-100"><div class="h-1.5 rounded-full bg-brand-500" style="width: {{ $b->progress() }}%"></div></div>
