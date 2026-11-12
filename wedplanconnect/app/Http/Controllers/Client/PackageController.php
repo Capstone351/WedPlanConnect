@@ -24,7 +24,7 @@ class PackageController extends Controller
 
         return view('client.packages', [
             'packages' => Booking::packages(),
-            'inclusions' => config('wedplan.package_inclusions'),
+            'inclusions' => array_keys(config('wedplan.package_inclusions')),
             'chosen' => $user->wedding_package,
             'hasDate' => (bool) $user->wedding_date,
             'booking' => $user->clientBookings()->active()->first(),
