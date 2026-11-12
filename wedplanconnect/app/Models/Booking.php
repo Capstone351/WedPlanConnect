@@ -46,6 +46,95 @@ class Booking extends Model
         return $price === null ? null : (float) $price;
     }
 
+    /**
+     * Preparation tasks a package brings: its inclusions, coordinators, and freebies, each with its lead time.
+     *
+     * @return array<string, int> task title => days before the wedding
+     */
+    public static function packageTasks(?string $name): array
+    {
+        $package = self::packages()[$name] ?? null;
+
+        if ($package === null) {
+            return [];
+        }
+
+        $tasks = config('wedplan.package_inclusions');
+        $tasks[$package['coordinators'].' On-the-Day Coordinators'] = config('wedplan.package_coordinators_lead_days');
+
+        foreach ($package['freebies'] as $freebie) {
+            $tasks['Freebie: '.$freebie] = config('wedplan.package_freebies_lead_days');
+        }
+
+        return $tasks;
+    }
+
+    /** Every task title any package can create, so package tasks can be told apart from the planner's own. */
+    public static function allPackageTaskTitles(): array
+    {
+        return collect(self::packages())->keys()
+            ->flatMap(fn (string $name) => array_keys(self::packageTasks($name)))
+            ->unique()->values()->all();
+    }
+
+    protected static function booted(): void
+    {
+        static::saved(function (Booking $booking) {
+            if ($booking->wasRecentlyCreated || $booking->wasChanged(['package', 'event_date', 'planner_id'])) {
+                $booking->syncPackageTasks();
+            }
+        });
+    }
+
+    /**
+     * Keep the preparation list in step with the package: add a task for each inclusion that's missing,
+     * remove untouched package tasks the package no longer has, and move untouched due dates with the wedding date.
+     */
+    public function syncPackageTasks(): void
+    {
+        if (! $this->planner_id || ! $this->event_date) {
+            return;
+        }
+
+        $wanted = self::packageTasks($this->package);
+        $existing = $this->tasks()->whereIn('title', self::allPackageTaskTitles())->get()->keyBy('title');
+
+        foreach ($existing as $title => $task) {
+            if ($task->status !== 'pending') {
+                continue;
+            }
+
+            if (! array_key_exists($title, $wanted)) {
+                $task->delete();
+            } else {
+                $task->update(['due_date' => $this->packageTaskDueDate($wanted[$title]), 'assigned_to' => $this->planner_id]);
+            }
+        }
+
+        foreach ($wanted as $title => $leadDays) {
+            if ($existing->has($title)) {
+                continue;
+            }
+
+            $this->tasks()->create([
+                'assigned_to' => $this->planner_id,
+                'title' => $title,
+                'description' => "Included in {$this->package}. Arrange and confirm it before the wedding.",
+                'due_date' => $this->packageTaskDueDate($leadDays),
+                'priority' => $leadDays >= 120 ? 'high' : ($leadDays >= 45 ? 'medium' : 'low'),
+                'status' => 'pending',
+            ]);
+        }
+    }
+
+    /** Due date a set number of days before the wedding, but never in the past or after the wedding. */
+    private function packageTaskDueDate(int $leadDays): CarbonInterface
+    {
+        $due = $this->event_date->copy()->subDays($leadDays);
+
+        return $due->lt(today()) ? today()->min($this->event_date) : $due;
+    }
+
     protected function casts(): array
     {
         return [
