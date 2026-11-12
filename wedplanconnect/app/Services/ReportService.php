@@ -87,7 +87,7 @@ class ReportService
             ->when($from, fn ($q) => $q->whereDate('payment_date', '>=', $from))
             ->when($to, fn ($q) => $q->whereDate('payment_date', '<=', $to))
             ->with('booking:id,client_name')
-            ->orderBy('payment_date')->get();
+            ->latestFirst()->get();
 
         $outstanding = Booking::visibleTo($user)->where('status', '!=', 'cancelled')->withSum('payments', 'amount')->get()
             ->sum(fn ($b) => max(0, (float) $b->total_amount - (float) $b->payments_sum_amount));

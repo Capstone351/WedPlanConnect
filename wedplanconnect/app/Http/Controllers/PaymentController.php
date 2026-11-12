@@ -34,7 +34,7 @@ class PaymentController extends Controller
         }
 
         $selected = $request->filled('booking_id')
-            ? Booking::visibleTo($user)->with(['payments' => fn ($q) => $q->orderByDesc('payment_date')])->find($request->integer('booking_id'))
+            ? Booking::visibleTo($user)->with(['payments' => fn ($q) => $q->latestFirst()])->find($request->integer('booking_id'))
             : null;
 
         return view('payments.index', [
@@ -55,7 +55,8 @@ class PaymentController extends Controller
         $this->authorizeBooking($booking);
         $this->guardOverpayment($booking, (float) $data['amount']);
 
-        Payment::create($data);
+        // The date is always the day it's recorded, so it can't be back- or forward-dated.
+        Payment::create([...$data, 'payment_date' => today()]);
 
         return redirect()->route('payments.index', ['booking_id' => $booking->id])
             ->with('status', 'Payment of ₱'.number_format($data['amount'], 2).' recorded. Remaining balance: ₱'.number_format($booking->balance(), 2).'.');
@@ -91,7 +92,7 @@ class PaymentController extends Controller
     public function contract(Booking $booking): Response
     {
         $this->authorizeBooking($booking);
-        $booking->load(['payments' => fn ($q) => $q->orderBy('payment_date'), 'suppliers', 'planner', 'bookingProducts.product.supplier']);
+        $booking->load(['payments' => fn ($q) => $q->latestFirst(), 'suppliers', 'planner', 'bookingProducts.product.supplier']);
 
         return Pdf::loadView('pdf.contract', ['booking' => $booking])
             ->setPaper('a4')
@@ -103,11 +104,10 @@ class PaymentController extends Controller
         return $request->validate([
             'booking_id' => [$payment ? 'prohibited' : 'required', Rule::exists('bookings', 'id')->whereNull('deleted_at')],
             'amount' => ['required', 'numeric', 'min:0.01', 'max:99999999.99'],
-            'payment_date' => ['required', 'date', 'before_or_equal:today'],
             'method' => ['required', Rule::in(array_keys(Payment::METHODS))],
             'receipt_number' => ['nullable', 'string', 'max:50'],
             'notes' => ['nullable', 'string', 'max:2000'],
-        ], ['payment_date.before_or_equal' => 'The payment date cannot be in the future.']);
+        ]);
     }
 
     /** Flags discrepancies: recorded payments may never exceed the contract amount. */

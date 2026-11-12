@@ -68,11 +68,7 @@
                                 @foreach (\App\Models\Payment::METHODS as $k => $v)<option value="{{ $k }}" @selected(old('method') === $k)>{{ $v }}</option>@endforeach
                             </select>
                         </div>
-                        <div>
-                            <label for="payment_date" class="label">Date</label>
-                            <input id="payment_date" name="payment_date" type="date" max="{{ today()->toDateString() }}" value="{{ old('payment_date', today()->toDateString()) }}" required class="input">
-                        </div>
-                        <div>
+                        <div class="col-span-2">
                             <label for="receipt_number" class="label">Receipt #</label>
                             <input id="receipt_number" name="receipt_number" value="{{ old('receipt_number') }}" maxlength="50" class="input">
                         </div>

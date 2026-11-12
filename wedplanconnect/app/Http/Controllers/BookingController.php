@@ -103,7 +103,7 @@ class BookingController extends Controller
             'bookingSuppliers' => fn ($q) => $q->with('supplier.user')->latest(),
             'preferences.supplier',
             'tasks' => fn ($q) => $q->with('assignee')->orderBy('status')->orderBy('due_date'),
-            'payments' => fn ($q) => $q->orderByDesc('payment_date'),
+            'payments' => fn ($q) => $q->latestFirst(),
             'bookingProducts' => fn ($q) => $q->with('product.supplier')->latest(),
         ]);
 

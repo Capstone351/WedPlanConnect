@@ -6,6 +6,7 @@ use App\Models\Booking;
 use App\Models\ChatbotSession;
 use App\Models\Faq;
 use App\Models\InventoryItem;
+use App\Models\Payment;
 use App\Models\Supplier;
 use App\Models\Task;
 use App\Models\User;
@@ -69,6 +70,28 @@ class OperationsTest extends TestCase
         ])->assertSessionHasNoErrors();
 
         $this->assertSame('Paid', $booking->paymentStatus());
+    }
+
+    public function test_payment_date_is_always_today_and_history_shows_newest_first(): void
+    {
+        $booking = Booking::factory()->create(['total_amount' => 100000]);
+        $planner = $booking->planner;
+        Payment::create(['booking_id' => $booking->id, 'amount' => 10000, 'payment_date' => today()->subMonth(), 'method' => 'cash', 'receipt_number' => 'OLD-1']);
+
+        $this->actingAs($planner)->post('/payments', [
+            'booking_id' => $booking->id, 'amount' => 20000, 'payment_date' => today()->subYear()->toDateString(), 'method' => 'gcash', 'receipt_number' => 'NEW-2',
+        ])->assertSessionHasNoErrors();
+
+        $latest = Payment::where('receipt_number', 'NEW-2')->sole();
+        $this->assertSame(today()->toDateString(), $latest->payment_date->toDateString());
+
+        $this->actingAs($planner)->get("/payments?booking_id={$booking->id}")->assertOk()
+            ->assertDontSee('id="payment_date"', false)->assertSeeInOrder(['NEW-2', 'OLD-1']);
+
+        $this->actingAs($planner)->put("/payments/{$latest->id}", ['amount' => 25000, 'payment_date' => today()->subYear()->toDateString(), 'method' => 'cash'])
+            ->assertSessionHasNoErrors();
+        $this->assertSame(today()->toDateString(), $latest->fresh()->payment_date->toDateString());
+        $this->assertSame(25000.0, (float) $latest->fresh()->amount);
     }
 
     public function test_contract_pdf_downloads(): void

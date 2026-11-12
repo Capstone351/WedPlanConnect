@@ -13,8 +13,8 @@
                 </select>
             </div>
             <div>
-                <label for="payment_date" class="label">Date</label>
-                <input id="payment_date" name="payment_date" type="date" max="{{ today()->toDateString() }}" value="{{ old('payment_date', $payment->payment_date->toDateString()) }}" required class="input">
+                <span class="label">Date recorded</span>
+                <div class="input bg-stone-50 text-stone-600">{{ $payment->payment_date->format('M j, Y') }}</div>
             </div>
             <div>
                 <label for="receipt_number" class="label">Receipt #</label>

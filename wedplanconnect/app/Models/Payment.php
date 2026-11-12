@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -30,6 +31,12 @@ class Payment extends Model
     public function booking(): BelongsTo
     {
         return $this->belongsTo(Booking::class)->withTrashed();
+    }
+
+    /** Newest payments first; same-day payments by the order they were recorded. */
+    public function scopeLatestFirst(Builder $query): Builder
+    {
+        return $query->orderByDesc('payment_date')->orderByDesc('id');
     }
 
     public function methodLabel(): string
