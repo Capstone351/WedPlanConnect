@@ -20,6 +20,32 @@ document.querySelectorAll('[data-flash]').forEach((el) => {
     }, 6000);
 });
 
+// QR download as a PNG image (phones save PNGs to the gallery; SVG files often won't open).
+// <button data-qr-png="file-name.png"> converts the code inside [data-qr-image] on the page.
+document.addEventListener('click', (event) => {
+    const btn = event.target.closest('[data-qr-png]');
+    const svg = btn && document.querySelector('[data-qr-image] svg');
+    if (!svg) return;
+    const size = 1000;
+    const image = new Image();
+    image.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = canvas.height = size;
+        const context = canvas.getContext('2d');
+        context.fillStyle = '#ffffff';
+        context.fillRect(0, 0, size, size);
+        context.drawImage(image, 0, 0, size, size);
+        canvas.toBlob((blob) => {
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = btn.dataset.qrPng;
+            link.click();
+            setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+        }, 'image/png');
+    };
+    image.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(new XMLSerializer().serializeToString(svg));
+});
+
 // Copy buttons: <button data-copy="#input-id">
 document.addEventListener('click', async (event) => {
     const btn = event.target.closest('[data-copy]');

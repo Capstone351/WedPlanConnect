@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Client;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\QrStatusController;
 use App\Models\Booking;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class DashboardController extends Controller
 {
@@ -39,5 +41,20 @@ class DashboardController extends Controller
         abort_unless($booking->client_id === $request->user()->id, 403);
 
         return view('qr.status', QrStatusController::statusData($booking) + ['viaQr' => false]);
+    }
+
+    /** The couple's own QR code, available once their planner confirms the booking. */
+    public function qr(Request $request, Booking $booking): View|RedirectResponse
+    {
+        abort_unless($booking->client_id === $request->user()->id, 403);
+
+        if (! $booking->qr_token || ! in_array($booking->status, ['confirmed', 'completed'], true)) {
+            return redirect()->route('client.dashboard')->withErrors(['qr' => 'Your QR code will be ready once your planner confirms your booking.']);
+        }
+
+        return view('client.qr', [
+            'booking' => $booking->loadMissing('client'),
+            'qrSvg' => QrCode::format('svg')->size(280)->margin(1)->errorCorrection('M')->generate($booking->statusUrl()),
+        ]);
     }
 }

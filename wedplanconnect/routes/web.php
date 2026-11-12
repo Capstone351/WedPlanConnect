@@ -176,6 +176,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:client')->prefix('my')->name('client.')->group(function () {
         Route::get('/', Client\DashboardController::class)->name('dashboard');
         Route::get('/status/{booking}', [Client\DashboardController::class, 'status'])->name('status');
+        Route::get('/qr/{booking}', [Client\DashboardController::class, 'qr'])->name('qr');
         Route::get('/wedding-date', [Client\WeddingDateController::class, 'edit'])->name('wedding-date');
         Route::put('/wedding-date', [Client\WeddingDateController::class, 'update'])->name('wedding-date.update');
         Route::get('/wedding-date/availability', [Client\WeddingDateController::class, 'availability'])->middleware('throttle:30,1')->name('wedding-date.availability');

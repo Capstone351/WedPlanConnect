@@ -7,6 +7,7 @@ use App\Models\Payment;
 use App\Models\Supplier;
 use App\Models\SupplierProduct;
 use App\Models\User;
+use App\Notifications\BookingConfirmed;
 use App\Support\Network;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -169,6 +170,7 @@ class BookingController extends Controller
 
         $booking->update(['status' => 'confirmed']);
         $booking->ensureQrToken();
+        $booking->client?->notify(new BookingConfirmed($booking));
 
         return redirect()->route('bookings.qr', $booking)->with('status', 'Booking confirmed. The client QR code has been generated.');
     }
