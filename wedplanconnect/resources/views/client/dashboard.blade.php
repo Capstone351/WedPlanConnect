@@ -71,7 +71,10 @@
                 <x-progress-ring :value="$progress" :size="132" :dark="true" />
                 <div class="flex flex-wrap items-center justify-center gap-3">
                     <span class="badge-gold">{{ ucfirst($booking->status) }}</span>
-                    <a href="{{ route('client.status', $booking) }}" class="btn-gold"><x-icon name="qr" class="size-4" /> View full status page</a>
+                    @if ($booking->qr_token && in_array($booking->status, ['confirmed', 'completed'], true))
+                        <a href="{{ route('client.qr', $booking) }}" class="btn-gold"><x-icon name="qr" class="size-4" /> My QR code</a>
+                    @endif
+                    <a href="{{ route('client.status', $booking) }}" class="btn-outline border-gold-300/60 text-gold-100 hover:bg-white/10">View full status page</a>
                 </div>
             </div>
             <div class="relative grid grid-cols-2 border-t border-gold-400/25 bg-black/15 sm:grid-cols-4">
