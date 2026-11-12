@@ -10,6 +10,7 @@ use App\Models\Payment;
 use App\Models\Supplier;
 use App\Models\Task;
 use App\Models\User;
+use App\Notifications\PaymentRecorded;
 use App\Services\ReportService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -86,12 +87,37 @@ class OperationsTest extends TestCase
         $this->assertSame(today()->toDateString(), $latest->payment_date->toDateString());
 
         $this->actingAs($planner)->get("/payments?booking_id={$booking->id}")->assertOk()
-            ->assertDontSee('id="payment_date"', false)->assertSeeInOrder(['NEW-2', 'OLD-1']);
+            ->assertDontSee('id="payment_date"', false)->assertSeeInOrder(['NEW-2', 'OLD-1'])->assertDontSee('/edit"', false);
+    }
 
-        $this->actingAs($planner)->put("/payments/{$latest->id}", ['amount' => 25000, 'payment_date' => today()->subYear()->toDateString(), 'method' => 'cash'])
-            ->assertSessionHasNoErrors();
-        $this->assertSame(today()->toDateString(), $latest->fresh()->payment_date->toDateString());
-        $this->assertSame(25000.0, (float) $latest->fresh()->amount);
+    public function test_recorded_payments_cannot_be_edited(): void
+    {
+        $booking = Booking::factory()->create(['total_amount' => 100000]);
+        $payment = Payment::create(['booking_id' => $booking->id, 'amount' => 10000, 'payment_date' => today(), 'method' => 'cash']);
+
+        $this->actingAs($booking->planner)->get("/payments/{$payment->id}/edit")->assertNotFound();
+        $this->actingAs($booking->planner)->put("/payments/{$payment->id}", ['amount' => 1, 'method' => 'cash'])->assertMethodNotAllowed();
+        $this->assertSame(10000.0, (float) $payment->fresh()->amount);
+    }
+
+    public function test_couple_is_notified_of_every_recorded_payment_with_its_details(): void
+    {
+        $booking = Booking::factory()->create(['total_amount' => 100000, 'client_name' => 'Cha & Ethan']);
+
+        $this->actingAs($booking->planner)->post('/payments', [
+            'booking_id' => $booking->id, 'amount' => 30000, 'method' => 'gcash', 'receipt_number' => 'OR-123', 'notes' => 'Down payment',
+        ])->assertSessionHasNoErrors();
+
+        $notification = $booking->client->notifications()->sole();
+        $this->assertSame(PaymentRecorded::class, $notification->type);
+        $this->assertSame('Payment received: ₱30,000.00', $notification->data['title']);
+        foreach (['GCash', today()->format('F j, Y'), 'OR-123', 'Down payment', $booking->planner->name, '₱100,000.00', 'Remaining balance: ₱70,000.00'] as $detail) {
+            $this->assertStringContainsString($detail, $notification->data['body']);
+        }
+
+        $mail = (new PaymentRecorded(Payment::sole(), $booking->planner->name))->toMail($booking->client)->render();
+        $this->assertStringContainsString('OR-123', (string) $mail);
+        $this->assertStringContainsString('Cha &amp; Ethan', (string) $mail);
     }
 
     public function test_contract_pdf_downloads(): void

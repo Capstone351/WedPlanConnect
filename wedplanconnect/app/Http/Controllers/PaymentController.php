@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Booking;
 use App\Models\Payment;
+use App\Notifications\PaymentRecorded;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -56,28 +57,13 @@ class PaymentController extends Controller
         $this->guardOverpayment($booking, (float) $data['amount']);
 
         // The date is always the day it's recorded, so it can't be back- or forward-dated.
-        Payment::create([...$data, 'payment_date' => today()]);
+        $payment = Payment::create([...$data, 'payment_date' => today()]);
+
+        // Payments can't be edited, and the couple gets their own record of each one.
+        $booking->client?->notify(new PaymentRecorded($payment, $request->user()->name));
 
         return redirect()->route('payments.index', ['booking_id' => $booking->id])
             ->with('status', 'Payment of ₱'.number_format($data['amount'], 2).' recorded. Remaining balance: ₱'.number_format($booking->balance(), 2).'.');
-    }
-
-    public function edit(Payment $payment): View
-    {
-        $this->authorizeBooking($payment->booking);
-
-        return view('payments.edit', ['payment' => $payment]);
-    }
-
-    public function update(Request $request, Payment $payment): RedirectResponse
-    {
-        $this->authorizeBooking($payment->booking);
-        $data = $this->validated($request, $payment);
-        $this->guardOverpayment($payment->booking, (float) $data['amount'], $payment);
-
-        $payment->update($data);
-
-        return redirect()->route('payments.index', ['booking_id' => $payment->booking_id])->with('status', 'Payment updated; balance recalculated.');
     }
 
     public function destroy(Payment $payment): RedirectResponse
@@ -99,10 +85,10 @@ class PaymentController extends Controller
             ->download('contract-summary-booking-'.$booking->id.'.pdf');
     }
 
-    private function validated(Request $request, ?Payment $payment = null): array
+    private function validated(Request $request): array
     {
         return $request->validate([
-            'booking_id' => [$payment ? 'prohibited' : 'required', Rule::exists('bookings', 'id')->whereNull('deleted_at')],
+            'booking_id' => ['required', Rule::exists('bookings', 'id')->whereNull('deleted_at')],
             'amount' => ['required', 'numeric', 'min:0.01', 'max:99999999.99'],
             'method' => ['required', Rule::in(array_keys(Payment::METHODS))],
             'receipt_number' => ['nullable', 'string', 'max:50'],
@@ -111,13 +97,13 @@ class PaymentController extends Controller
     }
 
     /** Flags discrepancies: recorded payments may never exceed the contract amount. */
-    private function guardOverpayment(Booking $booking, float $amount, ?Payment $existing = null): void
+    private function guardOverpayment(Booking $booking, float $amount): void
     {
         if ($booking->status === 'cancelled') {
             throw ValidationException::withMessages(['booking_id' => 'Payments cannot be recorded for a cancelled booking.']);
         }
 
-        $balance = $booking->balance() + ($existing ? (float) $existing->amount : 0);
+        $balance = $booking->balance();
 
         if ($amount - $balance > 0.001) {
             throw ValidationException::withMessages([

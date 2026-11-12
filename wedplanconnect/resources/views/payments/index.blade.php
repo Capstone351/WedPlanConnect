@@ -102,7 +102,6 @@
                                     <div class="text-xs text-stone-500">{{ $p->payment_date->format('M j, Y') }}{{ $p->receipt_number ? ' · OR '.$p->receipt_number : '' }}{{ $p->notes ? ' · '.$p->notes : '' }}</div>
                                 </div>
                                 <div class="flex items-center gap-1">
-                                    <a href="{{ route('payments.edit', $p) }}" class="btn-secondary btn-sm">Edit</a>
                                     <form method="POST" action="{{ route('payments.destroy', $p) }}" data-confirm="Void this payment record?">@csrf @method('DELETE')<button class="btn-icon" title="Void payment" aria-label="Void payment"><x-icon name="trash" class="size-4" /></button></form>
                                 </div>
                             </li>
