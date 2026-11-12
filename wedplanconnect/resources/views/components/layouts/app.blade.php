@@ -44,9 +44,9 @@
             '' => [
                 ['My Wedding', 'client.dashboard', 'client.dashboard', 'heart'],
                 $notifications,
+                ['My Planner', 'client.planner', 'client.planner*', 'user'],
                 ['Wedding Date', 'client.wedding-date', 'client.wedding-date*', 'calendar'],
                 ['Wedding Package', 'client.package', 'client.package*', 'clipboard'],
-                ['My Planner', 'client.planner', 'client.planner*', 'user'],
                 ['Meetings', 'client.meetings', 'client.meetings*', 'chat'],
                 ['Supplier Catalog', 'client.catalog', 'client.catalog*', 'store'],
             ],

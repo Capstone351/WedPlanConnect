@@ -56,6 +56,13 @@ class PlannerChoiceController extends Controller
 
         $user->forceFill(['preferred_planner_id' => $planner->id])->save();
 
-        return redirect()->route('client.planner')->with('status', "You chose {$planner->name} as your Wedding Planner. They'll be assigned when your booking is created.");
+        $message = "You chose {$planner->name} as your Wedding Planner. They'll be assigned when your booking is created.";
+
+        // Next step after the planner: setting the wedding date on one of their free days.
+        if (! $user->wedding_date) {
+            return redirect()->route('client.wedding-date')->with('status', $message." Next, choose your wedding date. {$planner->name}'s booked days are shown.");
+        }
+
+        return redirect()->route('client.planner')->with('status', $message);
     }
 }

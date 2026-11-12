@@ -3,9 +3,9 @@
         @php
             $me = auth()->user();
             $ready = [
-                ['calendar', 'Set your wedding date', $me->wedding_date ? $me->wedding_date->format('l, F j, Y') : null, route('client.wedding-date'), 'So your planner knows when you want to marry.'],
+                ['user', 'Choose your Wedding Planner', $me->preferredPlanner?->name, route('client.planner'), 'Start here: pick the planner you would like to work with.'],
+                ['calendar', 'Set your wedding date', $me->wedding_date ? $me->wedding_date->format('l, F j, Y') : null, route('client.wedding-date'), "We'll show the days your planner is free."],
                 ['clipboard', 'Choose your package', $me->wedding_package ? $me->wedding_package.' · ₱'.number_format(\App\Models\Booking::packagePrice($me->wedding_package) ?? 0, 0) : null, route('client.package'), 'After your date, pick Package A, B, or C.'],
-                ['user', 'Choose your Wedding Planner', $me->preferredPlanner?->name, route('client.planner'), 'Pick the planner you would like to work with.'],
                 ['heart', 'Save favorite suppliers', ($n = $me->favoriteSuppliers()->count()) ? $n.' '.str('favorite')->plural($n) : null, route('client.catalog'), 'Tap the heart on suppliers you like.'],
             ];
             $doneCount = collect($ready)->filter(fn ($s) => $s[2])->count();
