@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\ClientBudget;
 use App\Models\Supplier;
 use App\Models\SupplierProduct;
 use App\Models\User;
@@ -47,33 +46,24 @@ class SupplierPackageTest extends TestCase
         $this->assertNull($single->inclusions);
     }
 
-    public function test_client_finds_suppliers_with_packages_for_their_guest_count(): void
+    public function test_catalog_shows_suppliers_without_their_offerings_or_guest_filter(): void
     {
         $client = User::factory()->create();
-        ClientBudget::create(['user_id' => $client->id, 'total_amount' => 300000, 'guest_count' => 150]);
+        $supplier = Supplier::factory()->create(['name' => 'Big Styling Co', 'description' => 'Elegant ballroom styling.']);
+        SupplierProduct::create(['supplier_id' => $supplier->id, 'name' => 'Grand package', 'is_package' => true, 'guest_capacity' => 200, 'inclusions' => "Stage backdrop\nCenterpieces", 'is_available' => true]);
+        SupplierProduct::create(['supplier_id' => $supplier->id, 'name' => 'Bridal bouquet', 'price' => 6500, 'is_available' => true]);
 
-        $big = Supplier::factory()->create(['name' => 'Big Styling Co']);
-        $small = Supplier::factory()->create(['name' => 'Small Styling Co']);
-        SupplierProduct::create(['supplier_id' => $big->id, 'name' => 'Grand package', 'is_package' => true, 'guest_capacity' => 200, 'inclusions' => "Stage backdrop\nCenterpieces", 'is_available' => true]);
-        SupplierProduct::create(['supplier_id' => $small->id, 'name' => 'Intimate package', 'is_package' => true, 'guest_capacity' => 50, 'is_available' => true]);
+        foreach ([$client, User::factory()->planner()->create()] as $viewer) {
+            $this->actingAs($viewer)->get('/my/catalog')->assertOk()
+                ->assertSee('Big Styling Co')->assertSee('View profile')
+                ->assertDontSee('Packages good for at least')->assertDontSee('offering')->assertDontSee('up to 200 guests');
 
-        $this->actingAs($client)->get('/my/catalog?guests=100')
-            ->assertOk()->assertSee('Big Styling Co')->assertDontSee('Small Styling Co');
+            $this->actingAs($viewer)->get("/my/catalog/{$supplier->id}")->assertOk()
+                ->assertSee('Elegant ballroom styling.')
+                ->assertDontSee('Grand package')->assertDontSee('Stage backdrop')->assertDontSee('Bridal bouquet')->assertDontSee('Good for 200 guests');
+        }
 
-        $this->actingAs($client)->get("/my/catalog/{$big->id}")
-            ->assertOk()->assertSee('Package · Good for 200 guests')->assertSee('Fits your 150 guests')->assertSee('Stage backdrop');
-
-        $this->actingAs($client)->get("/my/catalog/{$small->id}")
-            ->assertOk()->assertSee('Smaller than your 150 guests');
-    }
-
-    public function test_planner_sees_packages_in_the_catalog_preview(): void
-    {
-        $supplier = Supplier::factory()->create(['name' => 'Big Styling Co']);
-        SupplierProduct::create(['supplier_id' => $supplier->id, 'name' => 'Grand package', 'is_package' => true, 'guest_capacity' => 200, 'is_available' => true]);
-        $planner = User::factory()->planner()->create();
-
-        $this->actingAs($planner)->get('/my/catalog')->assertOk()->assertSee('1 package · up to 200 guests');
-        $this->actingAs($planner)->get("/my/catalog/{$supplier->id}")->assertOk()->assertSee('Package · Good for 200 guests');
+        // The old guest filter is simply ignored.
+        $this->actingAs($client)->get('/my/catalog?guests=500')->assertOk()->assertSee('Big Styling Co');
     }
 }

@@ -69,12 +69,6 @@ class SupplierProduct extends Model
         };
     }
 
-    /** Packages that serve at least the given number of guests. */
-    public function scopePackagesFor(Builder $query, int $guests): Builder
-    {
-        return $query->where('is_package', true)->where('guest_capacity', '>=', $guests);
-    }
-
     /**
      * What a package includes, one entry per line as the supplier typed it.
      *
