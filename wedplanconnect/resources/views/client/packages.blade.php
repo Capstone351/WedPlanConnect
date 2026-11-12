@@ -1,5 +1,5 @@
 <x-layouts.app title="Wedding Package" heading="Choose Your Wedding Package"
-    subheading="Every package includes the same inclusions. They differ in the number of guests and cake layers.">
+    subheading="Every package has the same inclusions. They differ in guests, cake layers, coordinators, and freebies.">
     @if ($booking)
         <div class="mb-6 rounded-xl border border-gold-300 bg-gold-50 px-4 py-3 text-sm text-stone-700">
             Your booking has been made with <strong>{{ $booking->packageLabel() }}</strong>. To change your package, please contact your planner.
@@ -22,11 +22,24 @@
                         <div class="mt-2 text-sm text-gold-100">{{ $package['guests'] }} pax · Cake: {{ $package['cake_layers'] }} layers</div>
                     </div>
                 </div>
-                <ul class="flex-1 space-y-1.5 px-6 py-5 text-sm text-stone-700">
-                    @foreach ($inclusions as $line)
-                        <li class="flex gap-2"><x-icon name="check" class="mt-0.5 size-4 shrink-0 text-emerald-600" /> {{ $line }}</li>
-                    @endforeach
-                </ul>
+                <div class="flex-1 px-6 py-5">
+                    <div class="eyebrow text-brand-700">What's included</div>
+                    <ul class="mt-3 grid grid-cols-1 gap-x-4 gap-y-1.5 text-sm text-stone-700 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+                        @foreach ([...$inclusions, $package['coordinators'].' On-the-Day Coordinators'] as $line)
+                            <li class="flex gap-2 border-b border-stone-100 pb-1.5"><x-icon name="check" class="mt-0.5 size-4 shrink-0 text-emerald-600" /> {{ $line }}</li>
+                        @endforeach
+                    </ul>
+                    @if (! empty($package['freebies']))
+                        <div class="mt-5 rounded-xl border border-dashed border-gold-400 bg-gold-50/60 p-4">
+                            <div class="eyebrow flex items-center gap-1.5 text-brand-700"><x-icon name="heart" class="size-4" /> Freebies</div>
+                            <div class="mt-2 flex flex-wrap gap-2">
+                                @foreach ($package['freebies'] as $freebie)
+                                    <span class="rounded-full bg-white px-3 py-1 text-sm text-brand-700 ring-1 ring-gold-200">{{ $freebie }}</span>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+                </div>
                 <div class="border-t border-line px-6 py-4 text-center">
                     @if ($isChosen)
                         <span class="badge-green">{{ $booking ? 'In your booking' : 'Your chosen package' }}</span>

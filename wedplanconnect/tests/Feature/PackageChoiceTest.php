@@ -27,6 +27,7 @@ class PackageChoiceTest extends TestCase
     {
         $this->actingAs($this->client)->get('/my/package')->assertOk()
             ->assertSee('Package A')->assertSee('₱200,000', false)->assertSee('100 pax · Cake: 4 layers')->assertSee('Wine for Toasting')
+            ->assertSee('Church Decoration')->assertSee('4 On-the-Day Coordinators')->assertSee('2 On-the-Day Coordinators')->assertSee('Bridesmaids Robe for Dress-up/Makeup')
             ->assertSee('Choose Package A')->assertSee('Choose Package B')->assertSee('Choose Package C')
             ->assertDontSee('budget of');
 
