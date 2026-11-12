@@ -17,7 +17,7 @@
     <nav class="mb-6 flex flex-wrap items-center gap-2" aria-label="Filter by category">
         @foreach (collect(['' => 'All'])->merge($categories->mapWithKeys(fn ($c) => [$c => $c])) as $value => $label)
             @php $current = (string) request('category') === (string) $value; @endphp
-            <a href="{{ route('client.catalog', array_filter(['category' => $value, 'favorites' => request('favorites'), 'guests' => $guests])) }}"
+            <a href="{{ route('client.catalog', array_filter(['category' => $value, 'favorites' => request('favorites')])) }}"
                 @class([
                     'rounded-full px-3.5 py-1.5 text-xs font-medium transition',
                     'bg-brand-600 text-white shadow-sm' => $current,
@@ -25,26 +25,6 @@
                 ])>{{ $label }}</a>
         @endforeach
     </nav>
-
-    {{-- Packages sized for the wedding: show suppliers with a package for at least this many guests --}}
-    <form method="GET" action="{{ route('client.catalog') }}" class="mb-6 flex flex-wrap items-end gap-3 rounded-xl bg-white px-4 py-3 ring-1 ring-line">
-        @foreach (array_filter(['category' => request('category'), 'favorites' => request('favorites')]) as $name => $value)
-            <input type="hidden" name="{{ $name }}" value="{{ $value }}">
-        @endforeach
-        <div>
-            <label for="guests" class="label">Packages good for at least</label>
-            <div class="flex items-center gap-2">
-                <input id="guests" name="guests" type="number" min="1" max="5000" value="{{ $guests }}" placeholder="{{ $clientGuests ?? 100 }}" class="input w-28">
-                <span class="text-sm text-stone-600">guests</span>
-            </div>
-        </div>
-        <button class="btn-primary">Find packages</button>
-        @if ($guests)
-            <a href="{{ route('client.catalog', array_filter(['category' => request('category'), 'favorites' => request('favorites')])) }}" class="btn-secondary">Clear</a>
-        @elseif ($clientGuests)
-            <a href="{{ route('client.catalog', array_filter(['category' => request('category'), 'favorites' => request('favorites'), 'guests' => $clientGuests])) }}" class="text-sm font-medium text-brand-700 hover:underline">Use my {{ number_format($clientGuests) }} guests</a>
-        @endif
-    </form>
 
     <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         @forelse ($suppliers as $s)
@@ -75,24 +55,18 @@
 
                 <h3 class="mt-3 text-lg font-semibold"><a href="{{ route('client.catalog.show', $s) }}" class="after:absolute after:inset-0 hover:text-brand-700">{{ $s->name }}</a></h3>
                 <p class="mt-1 flex-1 text-sm text-stone-600">{{ $s->description ?: 'Details available from your planner.' }}</p>
-                @if ($s->packages_count)
-                    <p class="mt-3"><span class="badge-gold">{{ $s->packages_count }} {{ str('package')->plural($s->packages_count) }} · up to {{ number_format($s->max_package_guests) }} guests</span></p>
-                @endif
-
                 <div class="mt-4 flex items-center justify-between border-t border-stone-100 pt-3 text-sm">
                     <span>
                         @if ($s->starting_price)
                             <span class="text-stone-500">From</span> <span class="font-semibold">₱{{ number_format($s->starting_price) }}</span>
                         @endif
                     </span>
-                    <span class="font-medium text-brand-700">
-                        {{ $s->offerings_count ? $s->offerings_count.' '.str('offering')->plural($s->offerings_count) : 'View profile' }} →
-                    </span>
+                    <span class="font-medium text-brand-700">View profile →</span>
                 </div>
             </div>
         @empty
             <div class="card col-span-full p-10 text-center text-stone-500">
-                {{ $guests ? 'No suppliers have a package for '.number_format($guests).' or more guests here yet. Try a smaller number or ask your planner.' : 'No suppliers are available in this category yet.' }}
+                No suppliers are available in this category yet.
             </div>
         @endforelse
     </div>

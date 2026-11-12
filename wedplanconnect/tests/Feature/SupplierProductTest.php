@@ -108,7 +108,7 @@ class SupplierProductTest extends TestCase
             ->assertNotFound();
     }
 
-    public function test_client_sees_offerings_and_set_up_but_not_supplier_contacts(): void
+    public function test_client_sees_their_set_up_but_not_supplier_offerings_or_contacts(): void
     {
         $client = User::factory()->create();
         $booking = Booking::factory()->create(['client_id' => $client->id]);
@@ -118,8 +118,7 @@ class SupplierProductTest extends TestCase
         $booking->bookingProducts()->create(['supplier_product_id' => $product->id, 'quantity' => 1, 'unit_price' => 22000]);
 
         $this->actingAs($client)->get("/my/catalog/{$supplier->id}")
-            ->assertOk()->assertSee('Grazing table')->assertSee('In your set-up')
-            ->assertDontSee('Hidden thing')->assertDontSee('+639209998877');
+            ->assertOk()->assertDontSee('Grazing table')->assertDontSee('Hidden thing')->assertDontSee('+639209998877');
 
         $this->actingAs($client)->get('/my')->assertSee('Your wedding set-up')->assertSee('Grazing table');
     }

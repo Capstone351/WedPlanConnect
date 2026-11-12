@@ -80,15 +80,4 @@ class VendorInventoryTest extends TestCase
         $this->actingAs($booking->planner)->patch("/bookings/{$booking->id}/items/{$item->id}", ['quantity' => 5])->assertSessionHasNoErrors();
         $this->actingAs($booking->planner)->patch("/bookings/{$booking->id}/items/{$item->id}", ['quantity' => 6])->assertSessionHasErrors('quantity');
     }
-
-    public function test_couples_see_low_and_out_of_stock_products(): void
-    {
-        [, $supplier, $product] = $this->vendorWithProduct(2);
-        $client = User::factory()->create();
-
-        $this->actingAs($client)->get("/my/catalog/{$supplier->id}")->assertOk()->assertSee('Only 2 left');
-
-        $product->update(['stock_quantity' => 0]);
-        $this->actingAs($client)->get("/my/catalog/{$supplier->id}")->assertOk()->assertSee('Out of stock');
-    }
 }
