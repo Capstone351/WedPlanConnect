@@ -19,6 +19,12 @@
             </div>
         </div>
     @else
+        @if (! $user->preferredPlanner)
+            <div class="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gold-300 bg-gold-50 px-4 py-3 text-sm text-stone-700">
+                <span>Choose your Wedding Planner first, so we can show the days they're free.</span>
+                <a href="{{ route('client.planner') }}" class="btn-primary btn-sm">Choose my planner</a>
+            </div>
+        @endif
         <form method="POST" action="{{ route('client.wedding-date.update') }}" class="grid gap-6 lg:grid-cols-3 lg:items-start"
             data-date-form data-availability-url="{{ route('client.wedding-date.availability') }}" data-planner-name="{{ $user->preferredPlanner?->name }}">
             @csrf @method('PUT')

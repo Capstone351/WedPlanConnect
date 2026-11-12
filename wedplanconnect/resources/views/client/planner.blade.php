@@ -17,9 +17,9 @@
 
     @unless ($booking)
         @if (! $weddingDate)
-            <div class="mb-6 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-gold-300 bg-gold-50 px-4 py-3 text-sm text-gold-700">
-                <span>Set your wedding date first so we can show which planners are free that day.</span>
-                <a href="{{ route('client.wedding-date') }}" class="font-medium underline">Set my wedding date</a>
+            <div class="mb-6 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line bg-white px-4 py-3 text-sm text-stone-600">
+                <span>Already have a fixed date? Set it first, and we'll show which planners are free that day.</span>
+                <a href="{{ route('client.wedding-date') }}" class="font-medium text-brand-700 underline">Set my date first</a>
             </div>
         @elseif ($bookedIds->isNotEmpty())
             <div class="mb-6 rounded-xl border border-line bg-white px-4 py-3 text-sm text-stone-600">

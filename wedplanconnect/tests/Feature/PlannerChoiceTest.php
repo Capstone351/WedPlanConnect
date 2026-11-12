@@ -78,4 +78,30 @@ class PlannerChoiceTest extends TestCase
             ->assertSessionHasNoErrors();
         $this->assertSame($planner->id, $client->fresh()->preferred_planner_id);
     }
+
+    public function test_couple_is_guided_from_planner_to_date_to_package(): void
+    {
+        $planner = User::factory()->planner()->create(['name' => 'Maria Clara Uy']);
+        $client = User::factory()->create();
+
+        $page = $this->actingAs($client)->get('/my')->assertOk()->getContent();
+        $this->assertTrue(strpos($page, 'My Planner') < strpos($page, 'Wedding Date') && strpos($page, 'Wedding Date') < strpos($page, 'Wedding Package'));
+
+        // Before a planner is chosen, the date page suggests choosing one first; the planner page offers the other way round.
+        $this->actingAs($client)->get('/my/wedding-date')->assertOk()->assertSee('Choose your Wedding Planner first');
+        $this->actingAs($client)->get('/my/planner')->assertOk()->assertSee('Already have a fixed date?');
+
+        $this->actingAs($client)->put('/my/planner', ['planner_id' => $planner->id])
+            ->assertRedirect('/my/wedding-date')->assertSessionHas('status', fn ($s) => str_contains($s, 'Next, choose your wedding date.'));
+        $this->actingAs($client->refresh())->get('/my/wedding-date')->assertOk()->assertDontSee('Choose your Wedding Planner first');
+
+        $this->actingAs($client)->put('/my/wedding-date', ['wedding_date' => today()->addMonths(6)->toDateString()])->assertRedirect('/my/package');
+    }
+
+    public function test_couple_with_a_date_stays_on_the_planner_page_after_choosing(): void
+    {
+        [$client, , $free] = $this->clientWithOneBookedPlanner();
+
+        $this->actingAs($client)->put('/my/planner', ['planner_id' => $free->id])->assertRedirect('/my/planner');
+    }
 }
