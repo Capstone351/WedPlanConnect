@@ -23,17 +23,18 @@ return [
 
     /*
     | Wedding packages couples choose from (Weddings & More by Felicity Miracle Thérese).
-    | Every package has the same inclusions; they differ in price, guests (pax), and cake layers.
+    | Every package shares the same inclusions; they differ in price, guests (pax), cake layers,
+    | on-the-day coordinators, and freebies.
     */
     'packages' => [
-        'Package A' => ['price' => 200000, 'guests' => 100, 'cake_layers' => 4],
-        'Package B' => ['price' => 160000, 'guests' => 70, 'cake_layers' => 3],
-        'Package C' => ['price' => 130000, 'guests' => 50, 'cake_layers' => 2],
+        'Package A' => ['price' => 200000, 'guests' => 100, 'cake_layers' => 4, 'coordinators' => 4, 'freebies' => ['Wine for Toasting', 'Bridesmaids Robe for Dress-up/Makeup']],
+        'Package B' => ['price' => 160000, 'guests' => 70, 'cake_layers' => 3, 'coordinators' => 3, 'freebies' => ['Wine for Toasting', 'Bridesmaids Robe for Dress-up/Makeup']],
+        'Package C' => ['price' => 130000, 'guests' => 50, 'cake_layers' => 2, 'coordinators' => 2, 'freebies' => ['Wine for Toasting']],
     ],
     'package_inclusions' => [
-        'Hotel for Dress-up', 'Reception Area', 'Bridal Car', 'Cake', 'Bridal Dress', 'Bridal Entourage', 'Confetti/Poppers',
-        'Photo/Video (with Pre-nup)', 'Decor with Calling', 'Make-up (10 persons)', 'Emcee with DJ', 'Invitation (30 pcs.)',
-        'Give-away (30 pcs.)', 'Wine for Toasting',
+        'Hotel for Dress-up', 'Reception Area', 'Venue Decoration', 'Church Decoration', 'Bridal Car', 'Cake', 'Bridal Dress',
+        'Bridal Entourage', 'Confetti/Poppers', 'Photo/Video (w/ Pre-nup)', 'Decor w/ Calling', 'Make-up (10 persons)',
+        'Emcee w/ DJ', 'Invitation (30 pcs.)', 'Give-away (30 pcs.)',
     ],
 
     /*

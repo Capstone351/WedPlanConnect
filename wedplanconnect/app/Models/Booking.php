@@ -31,7 +31,7 @@ class Booking extends Model
     /**
      * The wedding packages couples choose from, keyed by name, most expensive first.
      *
-     * @return array<string, array{price: int, guests: int, cake_layers: int}>
+     * @return array<string, array{price: int, guests: int, cake_layers: int, coordinators: int, freebies: list<string>}>
      */
     public static function packages(): array
     {
