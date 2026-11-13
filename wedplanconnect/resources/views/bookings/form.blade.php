@@ -92,6 +92,17 @@
             </div>
         </div>
 
+        @if ($editing)
+            <div class="card p-5 lg:col-span-3">
+                <label for="change_reason" class="label">
+                    Reason for changes
+                    <span class="font-normal text-stone-400">{{ $booking->status === 'confirmed' ? '(required when changing the date, venue, package, price or planner)' : '(optional)' }}</span>
+                </label>
+                <textarea id="change_reason" name="change_reason" rows="2" maxlength="500" @class(['input', 'input-error' => $errors->has('change_reason')]) placeholder="e.g. Agreed with the couple at our May 3 meeting.">{{ old('change_reason') }}</textarea>
+                @error('change_reason')<p class="error-text">{{ $message }}</p>@else<p class="hint">The couple is notified of every change to these details, and it's kept in the booking's change history.</p>@enderror
+            </div>
+        @endif
+
         <div class="flex justify-end gap-2 lg:col-span-3">
             <a href="{{ $editing ? route('bookings.show', $booking) : route('bookings.index') }}" class="btn-secondary">Cancel</a>
             <button class="btn-primary">{{ $editing ? 'Save changes' : 'Check availability & save' }}</button>

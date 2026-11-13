@@ -33,7 +33,7 @@
                 </div>
                 @if (\App\Models\OutboxMessage::enabled())
                     <p class="mt-3 rounded-lg bg-gold-50 px-3 py-2 text-center text-xs text-gold-700 ring-1 ring-gold-200">
-                        <strong>Test mode:</strong> emails aren't delivered yet. Staff can read this PIN under <strong>Email outbox</strong> in WedPlanConnect.
+                        <strong>Test mode:</strong> emails aren't delivered yet. The administrator can read this PIN under <strong>Email outbox</strong> in WedPlanConnect.
                     </p>
                 @endif
             </div>

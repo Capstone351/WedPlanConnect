@@ -63,6 +63,11 @@ return [
     'conflict_scope' => env('WEDPLAN_CONFLICT_SCOPE', 'date_venue'),
 
     /*
+    | Days an unconfirmed (pending) booking holds the planner's date before it is released.
+    */
+    'pending_hold_days' => (int) env('WEDPLAN_PENDING_HOLD_DAYS', 14),
+
+    /*
     | QR + OTP status portal.
     */
     'otp_ttl_minutes' => 10,

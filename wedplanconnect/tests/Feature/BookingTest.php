@@ -54,12 +54,25 @@ class BookingTest extends TestCase
         $this->assertSame(1, Booking::count());
     }
 
-    public function test_same_date_at_a_different_venue_is_allowed(): void
+    public function test_same_date_at_a_different_venue_is_allowed_for_another_planner(): void
     {
         $this->actingAs($this->planner)->post('/bookings', $this->payload());
-        $this->actingAs($this->planner)->post('/bookings', $this->payload(['venue' => 'Marco Polo Plaza']))->assertSessionHasNoErrors();
+        $this->actingAs(User::factory()->planner()->create())->post('/bookings', $this->payload(['venue' => 'Marco Polo Plaza']))->assertSessionHasNoErrors();
 
         $this->assertSame(2, Booking::count());
+    }
+
+    public function test_a_planner_cannot_take_two_weddings_on_the_same_day(): void
+    {
+        $this->actingAs($this->planner)->post('/bookings', $this->payload());
+        $this->actingAs($this->planner)->post('/bookings', $this->payload(['venue' => 'Marco Polo Plaza']))->assertSessionHasErrors('event_date');
+        $this->actingAs($this->planner)->post('/bookings', $this->payload(['venue' => null]))->assertSessionHasErrors('event_date');
+
+        // An admin can't assign them a second wedding that day either.
+        $this->actingAs(User::factory()->admin()->create())
+            ->post('/bookings', $this->payload(['venue' => null, 'planner_id' => $this->planner->id]))->assertSessionHasErrors('event_date');
+
+        $this->assertSame(1, Booking::count());
     }
 
     public function test_cancelled_bookings_free_up_the_slot(): void
@@ -91,7 +104,10 @@ class BookingTest extends TestCase
         $booking = Booking::factory()->confirmed()->create(['planner_id' => $this->planner->id]);
         $this->assertNotNull($booking->fresh()->qr_token);
 
-        $this->actingAs($this->planner)->patch("/bookings/{$booking->id}/cancel");
+        $this->actingAs($this->planner)->patch("/bookings/{$booking->id}/cancel")->assertSessionHasErrors('reason');
+        $this->assertSame('confirmed', $booking->fresh()->status);
+
+        $this->actingAs($this->planner)->patch("/bookings/{$booking->id}/cancel", ['reason' => 'The couple postponed the wedding.'])->assertSessionHasNoErrors();
 
         $booking->refresh();
         $this->assertSame('cancelled', $booking->status);

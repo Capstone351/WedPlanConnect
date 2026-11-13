@@ -30,7 +30,7 @@
         'planner' => [
             '' => [['Dashboard', 'planner.dashboard', 'planner.dashboard', 'home'], $notifications],
             'Operations' => $operations,
-        ] + $testTools,
+        ],
         'vendor' => [
             '' => [['Dashboard', 'vendor.dashboard', 'vendor.dashboard', 'home'], $notifications],
             'My business' => [
@@ -134,6 +134,13 @@
             @endif
 
             <x-flash />
+
+            @if ($user->role === 'client' && ! $user->hasVerifiedEmail())
+                <div class="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gold-300 bg-gold-50 px-4 py-3 text-sm text-stone-700">
+                    <span>Please verify your email address (<strong>{{ $user->email }}</strong>) using the link we sent you. You'll need it before sending your booking or asking for a meeting.</span>
+                    <form method="POST" action="{{ route('verification.send') }}">@csrf<button class="btn-secondary btn-sm">Send a new link</button></form>
+                </div>
+            @endif
 
             {{ $slot }}
         </main>

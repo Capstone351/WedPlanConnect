@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Booking;
+use App\Models\BookingChange;
 use App\Models\Payment;
 use App\Models\Supplier;
 use App\Models\SupplierProduct;
 use App\Models\User;
+use App\Notifications\BookingChanged;
 use App\Notifications\BookingConfirmed;
 use App\Support\Network;
 use Illuminate\Http\RedirectResponse;
@@ -81,15 +83,16 @@ class BookingController extends Controller
     {
         $data = $this->validated($request);
 
-        $booking = DB::transaction(function () use ($data, $request) {
-            $this->guardConflict($data['event_date'], $data['venue']);
+        $data['planner_id'] = $request->user()->role === 'planner' ? $request->user()->id : $data['planner_id'];
+
+        $booking = Booking::withDateLock($data['event_date'], fn () => DB::transaction(function () use ($data, $request) {
+            $this->guardConflict($data['event_date'], $data['venue'], null, $data['planner_id']);
 
             $data['client_id'] = $data['client_id'] ?? $this->createClientAccount($request)->id;
-            $data['planner_id'] = $request->user()->role === 'planner' ? $request->user()->id : $data['planner_id'];
             $data['status'] = 'pending';
 
             return Booking::create($data);
-        });
+        }));
 
         return redirect()->route('bookings.show', $booking)->with('status', 'Booking created. No scheduling conflicts were found.');
     }
@@ -105,6 +108,7 @@ class BookingController extends Controller
             'tasks' => fn ($q) => $q->with('assignee')->orderBy('status')->orderBy('due_date'),
             'payments' => fn ($q) => $q->latestFirst(),
             'bookingProducts' => fn ($q) => $q->with('product.supplier')->latest(),
+            'changes.user',
         ]);
 
         $assignedIds = $booking->bookingSuppliers->pluck('supplier_id');
@@ -139,20 +143,49 @@ class BookingController extends Controller
         abort_if(in_array($booking->status, ['cancelled', 'completed']), 403, 'Cancelled or completed bookings can no longer be edited.');
 
         $data = $this->validated($request, $booking);
+        $request->validate(['change_reason' => ['nullable', 'string', 'max:500']]);
+        $reason = trim((string) $request->input('change_reason')) ?: null;
 
-        DB::transaction(function () use ($booking, $data, $request) {
-            $this->guardConflict($data['event_date'], $data['venue'], $booking->id);
+        if ($request->user()->role !== 'admin') {
+            unset($data['planner_id']);
+        }
+
+        // The contract can't drop below what the couple has already paid.
+        $paid = $booking->totalPaid();
+        if ((float) $data['total_amount'] + 0.001 < $paid) {
+            throw ValidationException::withMessages(['total_amount' => 'The contract amount cannot be lower than the ₱'.number_format($paid, 2).' already paid.']);
+        }
+
+        $tracked = ['event_date', 'venue', 'package', 'total_amount', 'planner_id'];
+        $before = $booking->only($tracked);
+        $changing = array_intersect(array_keys((clone $booking)->fill(Arr::only($data, $tracked))->getDirty()), $tracked);
+
+        // Once confirmed, the couple has agreed to the details: changing them needs a reason they can see.
+        if ($changing && $booking->status === 'confirmed' && ! $reason) {
+            throw ValidationException::withMessages(['change_reason' => 'This booking is confirmed. Please give a reason for changing the '
+                .Arr::join(array_map(fn ($f) => strtolower(BookingChange::LABELS[$f]), $changing), ', ', ' and ').'. The couple will see it.']);
+        }
+
+        $changes = Booking::withDateLock($data['event_date'], fn () => DB::transaction(function () use ($booking, $data, $request, $before, $reason) {
+            $this->guardConflict($data['event_date'], $data['venue'], $booking->id, $data['planner_id'] ?? $booking->planner_id);
 
             $data['client_id'] = $data['client_id'] ?? $this->createClientAccount($request)->id;
 
-            if ($request->user()->role !== 'admin') {
-                unset($data['planner_id']);
+            $booking->update($data);
+
+            return $booking->recordChanges($before, $reason, $request->user());
+        }));
+
+        if ($changes->isNotEmpty() && $booking->client) {
+            // Keep the couple's own wedding date in step with their booking.
+            if ($changes->contains('field', 'event_date')) {
+                $booking->client->forceFill(['wedding_date' => $booking->event_date])->save();
             }
 
-            $booking->update($data);
-        });
+            $booking->client->notify(new BookingChanged($booking, $changes, $reason, $request->user()->name));
+        }
 
-        return redirect()->route('bookings.show', $booking)->with('status', 'Booking updated.');
+        return redirect()->route('bookings.show', $booking)->with('status', $changes->isNotEmpty() ? 'Booking updated. The couple has been notified of the changes.' : 'Booking updated.');
     }
 
     public function confirm(Booking $booking): RedirectResponse
@@ -183,13 +216,24 @@ class BookingController extends Controller
             return back()->withErrors(['status' => 'Only confirmed bookings can be marked as completed.']);
         }
 
-        $booking->update(['status' => 'completed']);
+        if ($booking->event_date->isFuture()) {
+            return back()->withErrors(['status' => 'A wedding can only be marked as completed on or after its date ('.$booking->event_date->format('F j, Y').').']);
+        }
 
-        return back()->with('status', 'Booking marked as completed.');
+        $before = ['status' => $booking->status];
+        $booking->update(['status' => 'completed']);
+        $booking->recordChanges($before, null, auth()->user());
+
+        $balance = $booking->balance();
+
+        return back()->with('status', 'Booking marked as completed.'.($balance > 0 ? ' Note: ₱'.number_format($balance, 2).' of the contract is still unpaid.' : ''));
     }
 
-    /** Cancels the booking and invalidates its QR token so the status page can no longer be opened. */
-    public function cancel(Booking $booking): RedirectResponse
+    /**
+     * Cancels (or declines) the booking with a reason the couple sees. Frees the date,
+     * invalidates the QR code, and archives the wedding's open tasks.
+     */
+    public function cancel(Request $request, Booking $booking): RedirectResponse
     {
         $this->authorizeBooking($booking);
 
@@ -197,10 +241,13 @@ class BookingController extends Controller
             return back()->withErrors(['status' => 'This booking can no longer be cancelled.']);
         }
 
-        $booking->update(['status' => 'cancelled']);
-        $booking->invalidateQrAccess();
+        $data = $request->validate(['reason' => ['required', 'string', 'max:500']], [
+            'reason.required' => 'Please give a reason for cancelling. The couple will see it.',
+        ]);
 
-        return redirect()->route('bookings.show', $booking)->with('status', 'Booking cancelled. Its QR code has been invalidated.');
+        $booking->cancelWithReason(trim($data['reason']), $request->user());
+
+        return redirect()->route('bookings.show', $booking)->with('status', 'Booking cancelled. The couple has been notified, its QR code invalidated, and its open tasks archived.');
     }
 
     public function qr(Booking $booking): View|RedirectResponse
@@ -279,8 +326,16 @@ class BookingController extends Controller
     }
 
     /** Real-time double-booking detection (E1 of UC-03). */
-    private function guardConflict(string $eventDate, ?string $venue, ?int $ignoreId = null): void
+    private function guardConflict(string $eventDate, ?string $venue, ?int $ignoreId = null, ?int $plannerId = null): void
     {
+        // A planner handles one wedding per day, whether or not the venue is decided yet.
+        if ($plannerId && $busy = Booking::plannerBusyOn($plannerId, $eventDate, $ignoreId)) {
+            throw ValidationException::withMessages([
+                'event_date' => "Double-booking detected: this planner already has Booking #{$busy->id} ({$busy->client_name}) on "
+                    .$busy->event_date->format('F j, Y').'.',
+            ]);
+        }
+
         $conflict = Booking::findConflict($eventDate, $venue, $ignoreId);
 
         if ($conflict) {

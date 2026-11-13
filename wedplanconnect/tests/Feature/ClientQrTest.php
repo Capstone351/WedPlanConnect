@@ -42,7 +42,7 @@ class ClientQrTest extends TestCase
     public function test_cancelled_booking_has_no_qr_code(): void
     {
         $booking = Booking::factory()->confirmed()->create();
-        $this->actingAs($booking->planner)->patch("/bookings/{$booking->id}/cancel");
+        $this->actingAs($booking->planner)->patch("/bookings/{$booking->id}/cancel", ['reason' => 'Couple cancelled.']);
 
         $this->actingAs($booking->client)->get("/my/qr/{$booking->id}")->assertRedirect('/my');
     }

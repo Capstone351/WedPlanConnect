@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Booking;
 use App\Models\Payment;
 use App\Notifications\PaymentRecorded;
+use App\Notifications\PaymentVoided;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -35,7 +36,11 @@ class PaymentController extends Controller
         }
 
         $selected = $request->filled('booking_id')
-            ? Booking::visibleTo($user)->with(['payments' => fn ($q) => $q->latestFirst()])->find($request->integer('booking_id'))
+            ? Booking::visibleTo($user)->with([
+                'payments' => fn ($q) => $q->latestFirst()->with('recorder:id,name'),
+                // Voided payments stay visible (crossed out) so nothing disappears from the record.
+                'voidedPayments' => fn ($q) => $q->latestFirst()->with('recorder:id,name', 'voider:id,name'),
+            ])->find($request->integer('booking_id'))
             : null;
 
         return view('payments.index', [
@@ -57,7 +62,7 @@ class PaymentController extends Controller
         $this->guardOverpayment($booking, (float) $data['amount']);
 
         // The date is always the day it's recorded, so it can't be back- or forward-dated.
-        $payment = Payment::create([...$data, 'payment_date' => today()]);
+        $payment = Payment::create([...$data, 'payment_date' => today(), 'recorded_by' => $request->user()->id]);
 
         // Payments can't be edited, and the couple gets their own record of each one.
         $booking->client?->notify(new PaymentRecorded($payment, $request->user()->name));
@@ -66,12 +71,21 @@ class PaymentController extends Controller
             ->with('status', 'Payment of ₱'.number_format($data['amount'], 2).' recorded. Remaining balance: ₱'.number_format($booking->balance(), 2).'.');
     }
 
-    public function destroy(Payment $payment): RedirectResponse
+    /** Voids a payment (kept on record, crossed out) with a reason, and tells the couple. */
+    public function destroy(Request $request, Payment $payment): RedirectResponse
     {
         $this->authorizeBooking($payment->booking);
+
+        $data = $request->validate(['void_reason' => ['required', 'string', 'max:500']], [
+            'void_reason.required' => 'Please give a reason for voiding this payment. The couple will see it.',
+        ]);
+
+        $payment->forceFill(['voided_by' => $request->user()->id, 'void_reason' => trim($data['void_reason'])])->save();
         $payment->delete();
 
-        return back()->with('status', 'Payment voided; balance recalculated.');
+        $payment->booking->client?->notify(new PaymentVoided($payment, $request->user()->name));
+
+        return back()->with('status', 'Payment voided; balance recalculated. The couple has been notified.');
     }
 
     /** PDF contract / payment summary for a booking. */

@@ -13,6 +13,9 @@ use Illuminate\View\View;
 
 class LoginController extends Controller
 {
+    /** Hash checked against when no account matches, so every login attempt takes the same time. */
+    private const DUMMY_HASH = '$2y$12$csre/C3JyRmf.ztzwKoGdenH89U3A/FvlOijb7JYK.YI/0iVOpHVa';
+
     public function show(): View
     {
         return view('auth.login');
@@ -30,18 +33,26 @@ class LoginController extends Controller
 
         $user = User::withTrashed()->where('email', $credentials['email'])->first();
 
-        if ($user?->trashed()) {
+        // Check the password even for unknown emails so response time doesn't reveal which accounts exist.
+        $passwordMatches = Hash::check($credentials['password'], $user?->password ?? self::DUMMY_HASH);
+
+        // A wrong password always gets the same message: whether an account exists, is locked, or is
+        // deactivated is only revealed to someone who knows its password.
+        if (! $user || ! $passwordMatches) {
+            if ($user && ! $user->trashed() && ! $user->isLocked()) {
+                $this->recordFailure($user);
+            }
+
+            throw ValidationException::withMessages(['email' => 'These credentials do not match our records.']);
+        }
+
+        if ($user->trashed()) {
             throw ValidationException::withMessages(['email' => 'This account has been deactivated. Please contact the administrator.']);
         }
 
-        if ($user?->isLocked()) {
+        if ($user->isLocked()) {
             $minutes = (int) ceil(now()->diffInSeconds($user->locked_until) / 60);
-            throw ValidationException::withMessages(['email' => "Too many failed attempts. This account is locked for {$minutes} more minute(s)."]);
-        }
-
-        if (! $user || ! Hash::check($credentials['password'], $user->password)) {
-            $this->recordFailure($user);
-            throw ValidationException::withMessages(['email' => 'These credentials do not match our records.']);
+            throw ValidationException::withMessages(['email' => "This account is locked for {$minutes} more minute(s) after too many failed attempts. To unlock it now, use \"Forgot password\" to reset your password."]);
         }
 
         $user->forceFill(['failed_attempts' => 0, 'locked_until' => null, 'last_login_at' => now()])->save();
@@ -61,20 +72,15 @@ class LoginController extends Controller
         return redirect()->route('login')->with('status', 'You have been logged out.');
     }
 
-    private function recordFailure(?User $user): void
+    /** Counts a failed attempt and locks the account at the limit (the owner can unlock it by resetting the password). */
+    private function recordFailure(User $user): void
     {
-        if (! $user) {
-            return;
-        }
-
         $attempts = $user->failed_attempts + 1;
 
         if ($attempts >= User::MAX_FAILED_ATTEMPTS) {
             $user->forceFill(['failed_attempts' => 0, 'locked_until' => now()->addMinutes(User::LOCKOUT_MINUTES)])->save();
 
-            throw ValidationException::withMessages([
-                'email' => 'Too many failed attempts. This account is locked for '.User::LOCKOUT_MINUTES.' minutes.',
-            ]);
+            return;
         }
 
         $user->forceFill(['failed_attempts' => $attempts])->save();

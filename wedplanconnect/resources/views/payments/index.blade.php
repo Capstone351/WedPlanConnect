@@ -99,15 +99,29 @@
                             <li class="flex items-center justify-between gap-3 px-5 py-3">
                                 <div>
                                     <div class="font-medium tabular-nums">₱{{ number_format($p->amount, 2) }} <span class="text-xs font-normal text-stone-500">· {{ $p->methodLabel() }}</span></div>
-                                    <div class="text-xs text-stone-500">{{ $p->payment_date->format('M j, Y') }}{{ $p->receipt_number ? ' · OR '.$p->receipt_number : '' }}{{ $p->notes ? ' · '.$p->notes : '' }}</div>
+                                    <div class="text-xs text-stone-500">{{ $p->payment_date->format('M j, Y') }}{{ $p->receipt_number ? ' · OR '.$p->receipt_number : '' }}{{ $p->notes ? ' · '.$p->notes : '' }}{{ $p->recorder ? ' · Recorded by '.$p->recorder->name : '' }}</div>
                                 </div>
-                                <div class="flex items-center gap-1">
-                                    <form method="POST" action="{{ route('payments.destroy', $p) }}" data-confirm="Void this payment record?">@csrf @method('DELETE')<button class="btn-icon" title="Void payment" aria-label="Void payment"><x-icon name="trash" class="size-4" /></button></form>
-                                </div>
+                                <details class="relative" @if ($errors->has('void_reason') && old('void_payment') == $p->id) open @endif>
+                                    <summary class="btn-icon cursor-pointer list-none" title="Void payment" aria-label="Void payment"><x-icon name="trash" class="size-4" /></summary>
+                                    <form method="POST" action="{{ route('payments.destroy', $p) }}" class="card absolute right-0 z-20 mt-2 w-72 space-y-2 p-4">
+                                        @csrf @method('DELETE')
+                                        <input type="hidden" name="void_payment" value="{{ $p->id }}">
+                                        <label for="void_reason_{{ $p->id }}" class="label">Why void this payment? <span class="font-normal text-stone-400">(the couple will see this)</span></label>
+                                        <textarea id="void_reason_{{ $p->id }}" name="void_reason" rows="2" maxlength="500" required class="input" placeholder="e.g. Recorded twice by mistake."></textarea>
+                                        @if (old('void_payment') == $p->id)@error('void_reason')<p class="error-text">{{ $message }}</p>@enderror @endif
+                                        <button class="btn-danger btn-sm w-full">Void payment</button>
+                                    </form>
+                                </details>
                             </li>
                         @empty
                             <li class="px-5 py-6 text-center text-stone-500">No payments recorded yet.</li>
                         @endforelse
+                        @foreach ($selected->voidedPayments as $p)
+                            <li class="px-5 py-3 text-stone-400">
+                                <div class="font-medium tabular-nums line-through">₱{{ number_format($p->amount, 2) }} <span class="text-xs font-normal">· {{ $p->methodLabel() }} · {{ $p->payment_date->format('M j, Y') }}{{ $p->receipt_number ? ' · OR '.$p->receipt_number : '' }}</span></div>
+                                <div class="text-xs text-red-700/80">Voided by {{ $p->voider?->name ?? 'unknown' }} on {{ $p->deleted_at->format('M j, Y') }} · Reason: {{ $p->void_reason ?? 'not given' }}</div>
+                            </li>
+                        @endforeach
                     </ul>
                 </div>
             @endif

@@ -49,6 +49,10 @@ class MeetingController extends Controller
             'time.required' => 'Please choose a meeting time.',
         ]);
 
+        if (! $request->user()->hasVerifiedEmail()) {
+            throw ValidationException::withMessages(['meeting' => 'Please verify your email address first. Use the link we emailed you, or send a new one from My Wedding.']);
+        }
+
         $at = Carbon::parse($data['date'].' '.$data['time']);
 
         $meeting = DB::transaction(function () use ($request, $data, $at) {

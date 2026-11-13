@@ -47,6 +47,8 @@ class UserController extends Controller
         $data = $this->validated($request);
 
         $user = User::create($data);
+        // The administrator creates these accounts directly, so the email doesn't need confirming.
+        $user->markEmailAsVerified();
         $this->linkSupplier($user, $request->integer('supplier_id') ?: null);
 
         return redirect()->route('admin.users.index')->with('status', "Account for {$user->name} created.");
