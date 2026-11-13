@@ -56,8 +56,9 @@
                     @endif
                     <div class="sm:col-span-2">
                         <label for="wedding_venue" class="label">Preferred venue <span class="font-normal text-stone-400">(optional)</span></label>
-                        <input id="wedding_venue" name="wedding_venue" maxlength="200" value="{{ old('wedding_venue', $user->wedding_venue) }}"
-                            placeholder="e.g. Casa Gorordo Museum, Cebu City (or leave blank if you're still deciding)" class="input" data-venue-input>
+                        <input id="wedding_venue" name="wedding_venue" maxlength="200" list="cebu-venues" autocomplete="off" value="{{ old('wedding_venue', $user->wedding_venue) }}"
+                            placeholder="Start typing for Cebu venues, or leave blank if you're still deciding" class="input" data-venue-input>
+                        <x-place-options id="cebu-venues" />
                         <p class="hint">Your planner checks the date and venue together to avoid double-bookings.</p>
                     </div>
                 </div>
@@ -115,8 +116,8 @@
                             </div>
                             <div>
                                 <label for="venue" class="label">Wedding venue <span class="font-normal text-stone-400">(optional)</span></label>
-                                <input id="venue" name="venue" maxlength="200" value="{{ old('venue', $user->wedding_venue) }}"
-                                    placeholder="Leave blank if you're still deciding" @class(['input', 'input-error' => $errors->has('venue')])>
+                                <input id="venue" name="venue" maxlength="200" list="cebu-venues" autocomplete="off" value="{{ old('venue', $user->wedding_venue) }}"
+                                    placeholder="Start typing for Cebu venues, or leave blank if you're still deciding" @class(['input', 'input-error' => $errors->has('venue')])>
                                 @error('venue')<p class="error-text">{{ $message }}</p>@enderror
                             </div>
                         </div>
