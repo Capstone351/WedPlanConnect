@@ -11,7 +11,7 @@
             <a href="{{ route('bookings.edit', $booking) }}" class="btn-secondary">Edit</a>
         @endif
         @if ($booking->status === 'pending')
-            <form method="POST" action="{{ route('bookings.confirm', $booking) }}" data-confirm="Confirm this booking and generate the client's QR code?">
+            <form method="POST" action="{{ route('bookings.confirm', $booking) }}" data-confirm="Confirm this booking and generate the client's QR code?" data-confirm-title="Confirm this booking?" data-confirm-ok="Confirm &amp; generate QR">
                 @csrf @method('PATCH')
                 <button class="btn-success"><x-icon name="qr" class="size-4" /> Confirm & generate QR</button>
             </form>

@@ -89,7 +89,7 @@
 
         @if ($user->wedding_date)
             <form method="POST" action="{{ route('client.booking-request') }}" class="card mt-6" id="send-booking"
-                data-confirm="Send this booking to {{ $user->preferredPlanner?->name ?? 'your planner' }}? After this, date changes go through your planner.">
+                data-confirm="Send this booking to {{ $user->preferredPlanner?->name ?? 'your planner' }}? After this, date changes go through your planner." data-confirm-title="Send your booking?" data-confirm-ok="Send booking">
                 @csrf
                 <div class="card-header"><h2 class="card-title">Send your booking to your planner</h2></div>
                 <div class="card-body space-y-5">

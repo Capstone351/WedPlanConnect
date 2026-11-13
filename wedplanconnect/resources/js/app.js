@@ -1,10 +1,66 @@
 const csrf = () => document.querySelector('meta[name="csrf-token"]')?.content;
 
-// Confirmation dialogs for destructive actions: <form data-confirm="Are you sure?">
-document.addEventListener('submit', (event) => {
-    const message = event.target.dataset?.confirm;
-    if (message && !window.confirm(message)) {
-        event.preventDefault();
+// Themed confirmation dialog: <form data-confirm="Are you sure?" data-confirm-ok="Send booking">
+// Replaces the browser's plain confirm box. Removals and cancellations get a red button.
+const confirmDialog = (() => {
+    let dialog;
+
+    const build = () => {
+        dialog = document.createElement('dialog');
+        dialog.className = 'confirm-dialog';
+        dialog.setAttribute('aria-labelledby', 'confirm-dialog-title');
+        dialog.innerHTML = `
+            <form method="dialog" class="confirm-dialog-panel">
+                <div class="confirm-dialog-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="size-6"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 3.5h.01M10.3 3.9 2.4 17.5A2 2 0 0 0 4.1 20.5h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>
+                </div>
+                <h2 id="confirm-dialog-title" class="font-display text-xl font-semibold text-ink"></h2>
+                <p class="confirm-dialog-message mt-2 text-sm leading-relaxed text-stone-600"></p>
+                <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                    <button value="cancel" class="btn-secondary">Go back</button>
+                    <button value="ok" class="confirm-dialog-ok"></button>
+                </div>
+            </form>`;
+        // Clicking the dimmed backdrop counts as "Go back".
+        dialog.addEventListener('click', (e) => { if (e.target === dialog) dialog.close('cancel'); });
+        document.body.appendChild(dialog);
+    };
+
+    return (message, { title, ok, danger }) => new Promise((resolve) => {
+        if (!dialog) build();
+        dialog.querySelector('h2').textContent = title;
+        dialog.querySelector('.confirm-dialog-message').textContent = message;
+        dialog.querySelector('.confirm-dialog-icon').classList.toggle('is-danger', danger);
+        const okButton = dialog.querySelector('.confirm-dialog-ok');
+        okButton.textContent = ok;
+        okButton.className = `confirm-dialog-ok ${danger ? 'btn-danger' : 'btn-primary'}`;
+        dialog.returnValue = 'cancel';
+        dialog.addEventListener('close', () => resolve(dialog.returnValue === 'ok'), { once: true });
+        dialog.showModal();
+        // Safer default for destructive actions: focus "Go back".
+        (danger ? dialog.querySelector('[value="cancel"]') : okButton).focus();
+    });
+})();
+
+document.addEventListener('submit', async (event) => {
+    const form = event.target;
+    const message = form.dataset?.confirm;
+    if (!message || form.dataset.confirmed === '1') {
+        delete form.dataset.confirmed;
+        return;
+    }
+
+    event.preventDefault();
+    const danger = /\b(remove|cancel|deactivate|archive|delete|void)\b/i.test(message);
+    const confirmed = await confirmDialog(message, {
+        title: form.dataset.confirmTitle || (danger ? 'Are you sure?' : 'Please confirm'),
+        ok: form.dataset.confirmOk || (danger ? 'Yes, continue' : 'Confirm'),
+        danger,
+    });
+
+    if (confirmed) {
+        form.dataset.confirmed = '1';
+        form.requestSubmit(event.submitter ?? undefined);
     }
 });
 
