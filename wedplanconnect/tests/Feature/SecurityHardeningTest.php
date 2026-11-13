@@ -70,7 +70,7 @@ class SecurityHardeningTest extends TestCase
         $planner = User::factory()->planner()->create();
 
         $this->post('/register', [
-            'name' => 'Ana Santos', 'bride_name' => 'Ana Santos', 'groom_name' => 'Miguel Reyes', 'email' => 'ana@example.com',
+            'name' => 'Ana Santos', 'bride_first_name' => 'Ana', 'bride_last_name' => 'Santos', 'groom_first_name' => 'Miguel', 'groom_last_name' => 'Reyes', 'email' => 'ana@example.com',
             'phone' => '09171234567', 'password' => 'secret123', 'password_confirmation' => 'secret123', 'privacy' => '1',
         ])->assertRedirect('/my');
 

@@ -93,16 +93,33 @@ class AuthenticationTest extends TestCase
     public function test_clients_can_self_register(): void
     {
         $this->post('/register', [
-            'name' => 'Ana Santos', 'bride_name' => 'Ana Santos', 'groom_name' => 'Miguel Reyes',
+            'name' => 'Ana Santos', 'bride_first_name' => 'Ana', 'bride_last_name' => 'Santos', 'groom_first_name' => 'Miguel', 'groom_last_name' => 'Reyes',
             'email' => 'Ana.Santos@Gmail.com', 'phone' => '09171234567',
             'password' => 'Secret123', 'password_confirmation' => 'Secret123', 'privacy' => '1',
         ])->assertRedirect('/my');
 
         $this->assertDatabaseHas('users', [
             'email' => 'ana.santos@gmail.com', 'role' => 'client', 'phone' => '09171234567',
+            'bride_first_name' => 'Ana', 'bride_last_name' => 'Santos', 'groom_first_name' => 'Miguel', 'groom_last_name' => 'Reyes',
             'bride_name' => 'Ana Santos', 'groom_name' => 'Miguel Reyes',
         ]);
         $this->get('/my')->assertOk()->assertSee('The wedding of')->assertSee('Ana Santos &amp; Miguel Reyes', false);
+    }
+
+    public function test_registration_form_asks_for_the_contact_person_and_each_partners_first_and_last_name(): void
+    {
+        $this->get('/register')->assertOk()
+            ->assertSeeInOrder(['First contact person', "Bride's first name", "Bride's last name", "Groom's first name", "Groom's last name"], false);
+    }
+
+    public function test_existing_full_names_are_split_into_first_and_last(): void
+    {
+        $migration = require database_path('migrations/2026_11_13_163905_split_couple_names_into_first_and_last.php');
+        $split = (new \ReflectionMethod($migration, 'split'))->invoke(...);
+
+        $this->assertSame(['Maria Clara', 'Uy'], $split($migration, 'Maria Clara  Uy'));
+        $this->assertSame(['Ana', null], $split($migration, 'Ana'));
+        $this->assertSame([null, null], $split($migration, null));
     }
 
     public function test_registration_requires_one_name_and_an_eleven_digit_mobile(): void
@@ -110,14 +127,14 @@ class AuthenticationTest extends TestCase
         // This test posts more invalid sign-ups than the route's throttle allows per minute.
         $this->withoutMiddleware(ThrottleRequests::class);
 
-        $valid = ['name' => 'Ana Santos', 'bride_name' => 'Ana Santos', 'groom_name' => 'Miguel Reyes', 'email' => 'ana@gmail.com', 'phone' => '09171234567',
+        $valid = ['name' => 'Ana Santos', 'bride_first_name' => 'Ana', 'bride_last_name' => 'Santos', 'groom_first_name' => 'Miguel', 'groom_last_name' => 'Reyes', 'email' => 'ana@gmail.com', 'phone' => '09171234567',
             'password' => 'Secret123', 'password_confirmation' => 'Secret123', 'privacy' => '1'];
 
         foreach (['Ana & Miguel', 'Ana and Miguel', 'Ana at Miguel', 'Ana / Miguel'] as $couple) {
             $this->post('/register', ['name' => $couple] + $valid)->assertSessionHasErrors('name');
         }
 
-        foreach (['bride_name', 'groom_name'] as $field) {
+        foreach (['bride_first_name', 'bride_last_name', 'groom_first_name', 'groom_last_name'] as $field) {
             $this->post('/register', [$field => ''] + $valid)->assertSessionHasErrors($field);
             $this->post('/register', [$field => 'Ana & Miguel'] + $valid)->assertSessionHasErrors($field);
         }
@@ -137,7 +154,7 @@ class AuthenticationTest extends TestCase
     {
         $this->withoutMiddleware(ThrottleRequests::class);
 
-        $valid = ['name' => 'Ana Santos', 'bride_name' => 'Ana Santos', 'groom_name' => 'Miguel Reyes', 'phone' => '09171234567',
+        $valid = ['name' => 'Ana Santos', 'bride_first_name' => 'Ana', 'bride_last_name' => 'Santos', 'groom_first_name' => 'Miguel', 'groom_last_name' => 'Reyes', 'phone' => '09171234567',
             'password' => 'Secret123', 'password_confirmation' => 'Secret123', 'privacy' => '1'];
 
         foreach (['ana@gmail.com', 'ana@yahoo.com', 'ana@outlook.com', 'ana@company.com.ph'] as $email) {
@@ -153,11 +170,11 @@ class AuthenticationTest extends TestCase
     {
         $client = User::factory()->create(['role' => 'client']);
 
-        $this->actingAs($client)->put('/account/couple', ['bride_name' => 'Bea Lim', 'groom_name' => 'Paolo Cruz'])
+        $this->actingAs($client)->put('/account/couple', ['bride_first_name' => 'Bea', 'bride_last_name' => 'Lim', 'groom_first_name' => 'Paolo', 'groom_last_name' => 'Cruz'])
             ->assertSessionHasNoErrors();
         $this->assertSame('Bea Lim & Paolo Cruz', $client->fresh()->coupleNames());
 
-        $this->actingAs(User::factory()->planner()->create())->put('/account/couple', ['bride_name' => 'X', 'groom_name' => 'Y'])
+        $this->actingAs(User::factory()->planner()->create())->put('/account/couple', ['bride_first_name' => 'X', 'bride_last_name' => 'X', 'groom_first_name' => 'Y', 'groom_last_name' => 'Y'])
             ->assertForbidden();
     }
 }

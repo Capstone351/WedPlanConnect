@@ -37,7 +37,8 @@ class RegisterController extends Controller
             'password' => ['required', 'confirmed', Password::min(8)->letters()->numbers()],
             'privacy' => ['accepted'],
         ], [
-            'name.not_regex' => "Please enter one person's name only. Each person creates their own account.",
+            'name.required' => "Please enter the first contact person's full name.",
+            'name.not_regex' => "Please enter one person's name only: the first contact person for this account.",
             'email.unique' => 'An account with this email address already exists. Try logging in instead.',
             'phone.required' => 'Please enter your mobile number.',
             'phone.regex' => 'The mobile number must start with 09 and have exactly 11 digits, e.g. 09171234567.',

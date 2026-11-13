@@ -16,14 +16,17 @@
                 <div class="card-header"><h2 class="card-title">The couple</h2></div>
                 <div class="card-body space-y-4">
                     <div class="grid gap-4 sm:grid-cols-2">
-                        <div>
-                            <label for="bride_name" class="label">Bride's name</label>
-                            <input id="bride_name" name="bride_name" value="{{ old('bride_name', $user->bride_name) }}" required maxlength="100" class="input">
-                        </div>
-                        <div>
-                            <label for="groom_name" class="label">Groom's name</label>
-                            <input id="groom_name" name="groom_name" value="{{ old('groom_name', $user->groom_name) }}" required maxlength="100" class="input">
-                        </div>
+                        @foreach (['bride' => "Bride's", 'groom' => "Groom's"] as $who => $whose)
+                            @foreach (['first', 'last'] as $part)
+                                @php $field = "{$who}_{$part}_name"; @endphp
+                                <div>
+                                    <label for="{{ $field }}" class="label">{{ $whose }} {{ $part }} name</label>
+                                    <input id="{{ $field }}" name="{{ $field }}" value="{{ old($field, $user->{$field}) }}" required maxlength="60"
+                                        @class(['input', 'input-error' => $errors->has($field)])>
+                                    @error($field)<p class="error-text">{{ $message }}</p>@enderror
+                                </div>
+                            @endforeach
+                        @endforeach
                     </div>
                     <p class="hint mt-0">Shown at the top of your wedding dashboard.</p>
                     <button class="btn-primary">Save names</button>
