@@ -31,6 +31,9 @@ class Booking extends Model
     /** Statuses that occupy a date/venue slot for double-booking detection. */
     public const ACTIVE_STATUSES = ['pending', 'confirmed'];
 
+    /** Statuses whose payments can be recorded: only after the planner confirms the booking. */
+    public const PAYABLE_STATUSES = ['confirmed', 'completed'];
+
     /**
      * The wedding packages couples choose from, keyed by name, most expensive first.
      *

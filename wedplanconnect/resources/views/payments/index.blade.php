@@ -56,6 +56,7 @@
                                 <option value="{{ $b->id }}" @selected(old('booking_id', $selected?->id) == $b->id)>{{ $b->client_name }} — {{ $b->event_date->format('M j, Y') }}</option>
                             @endforeach
                         </select>
+                        @error('booking_id')<p class="error-text">{{ $message }}</p>@else<p class="hint">Only confirmed bookings are listed. Confirm a booking first to record its payments.</p>@enderror
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
@@ -89,6 +90,12 @@
                         <h2 class="card-title">{{ $selected->client_name }}</h2>
                         <a href="{{ route('bookings.contract', $selected) }}" class="btn-secondary btn-sm"><x-icon name="download" class="size-4" /> PDF</a>
                     </div>
+                    @if ($selected->status === 'pending')
+                        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-gold-200 bg-gold-50 px-5 py-3 text-sm text-stone-700">
+                            <span>This booking isn't confirmed yet. Confirm it first to record payments.</span>
+                            <a href="{{ route('bookings.show', $selected) }}" class="btn-gold btn-sm">Open booking</a>
+                        </div>
+                    @endif
                     <div class="grid grid-cols-3 gap-2 border-b border-stone-100 p-4 text-center text-sm">
                         <div><div class="text-xs text-stone-500">Contract</div><div class="font-semibold tabular-nums">₱{{ number_format($selected->total_amount, 2) }}</div></div>
                         <div><div class="text-xs text-stone-500">Paid</div><div class="font-semibold text-emerald-700 tabular-nums">₱{{ number_format($sPaid, 2) }}</div></div>

@@ -195,7 +195,7 @@ class SecurityHardeningTest extends TestCase
     public function test_voiding_a_payment_needs_a_reason_stays_on_record_and_tells_the_couple(): void
     {
         Notification::fake();
-        $booking = Booking::factory()->create(['total_amount' => 100000]);
+        $booking = Booking::factory()->confirmed()->create(['total_amount' => 100000]);
 
         $this->actingAs($booking->planner)->post('/payments', ['booking_id' => $booking->id, 'amount' => 30000, 'method' => 'cash', 'receipt_number' => 'OR-9']);
         $payment = Payment::sole();
