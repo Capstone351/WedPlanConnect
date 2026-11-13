@@ -69,8 +69,9 @@
             ['Assign suppliers', $booking->bookingSuppliers->isNotEmpty(), '#suppliers', 'Pick vendors (client favorites are pre-ticked).'],
             ['Choose set-up items', $booking->bookingProducts->isNotEmpty(), '#setup', "Select vendors' products for the wedding."],
             ['Add preparation tasks', $booking->tasks->isNotEmpty(), route('tasks.create', ['booking_id' => $booking->id]), 'Milestones the couple will see on their status page.'],
-            ['Record the down payment', $booking->payments->isNotEmpty(), route('payments.index', ['booking_id' => $booking->id]), 'Log what the couple has paid so far.'],
             ['Confirm & print the QR code', $booking->status === 'confirmed', $booking->status === 'confirmed' ? route('bookings.qr', $booking) : null, 'Use "Confirm & generate QR" above, then print it for the contract.'],
+            ['Record the down payment', $booking->payments->isNotEmpty(), $booking->status === 'confirmed' ? route('payments.index', ['booking_id' => $booking->id]) : null,
+                $booking->status === 'confirmed' ? 'Log what the couple has paid so far.' : 'Available once the booking is confirmed.'],
         ];
         $doneCount = collect($steps)->where(1, true)->count();
     @endphp
@@ -511,7 +512,11 @@
             <div class="card">
                 <div class="card-header">
                     <h2 class="card-title">Payments</h2>
-                    <a href="{{ route('payments.index', ['booking_id' => $booking->id]) }}" class="text-sm link">Record</a>
+                    @if (in_array($booking->status, \App\Models\Booking::PAYABLE_STATUSES, true))
+                        <a href="{{ route('payments.index', ['booking_id' => $booking->id]) }}" class="text-sm link">Record</a>
+                    @elseif ($booking->status === 'pending')
+                        <span class="text-xs text-stone-500">After confirming</span>
+                    @endif
                 </div>
                 <ul class="divide-y divide-stone-100 text-sm">
                     @forelse ($booking->payments as $p)

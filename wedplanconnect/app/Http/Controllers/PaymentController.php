@@ -46,7 +46,7 @@ class PaymentController extends Controller
         return view('payments.index', [
             'bookings' => $bookings,
             'selected' => $selected,
-            'allBookings' => Booking::visibleTo($user)->where('status', '!=', 'cancelled')->orderBy('event_date')->get(['id', 'client_name', 'event_date', 'total_amount']),
+            'allBookings' => Booking::visibleTo($user)->whereIn('status', Booking::PAYABLE_STATUSES)->orderBy('event_date')->get(['id', 'client_name', 'event_date', 'total_amount']),
             'totals' => [
                 'contract' => (float) $bookings->sum('total_amount'),
                 'collected' => (float) $bookings->sum('payments_sum_amount'),
@@ -115,6 +115,11 @@ class PaymentController extends Controller
     {
         if ($booking->status === 'cancelled') {
             throw ValidationException::withMessages(['booking_id' => 'Payments cannot be recorded for a cancelled booking.']);
+        }
+
+        // Money is only taken once the planner has confirmed the booking (and its price).
+        if (! in_array($booking->status, Booking::PAYABLE_STATUSES, true)) {
+            throw ValidationException::withMessages(['booking_id' => 'Confirm this booking first. Payments can only be recorded for confirmed bookings.']);
         }
 
         $balance = $booking->balance();

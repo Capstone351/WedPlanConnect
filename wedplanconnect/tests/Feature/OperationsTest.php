@@ -52,7 +52,7 @@ class OperationsTest extends TestCase
 
     public function test_payments_recalculate_balance_and_block_overpayment(): void
     {
-        $booking = Booking::factory()->create(['total_amount' => 100000]);
+        $booking = Booking::factory()->confirmed()->create(['total_amount' => 100000]);
         $planner = $booking->planner;
 
         $this->actingAs($planner)->post('/payments', [
@@ -73,9 +73,29 @@ class OperationsTest extends TestCase
         $this->assertSame('Paid', $booking->paymentStatus());
     }
 
-    public function test_payment_date_is_always_today_and_history_shows_newest_first(): void
+    public function test_payments_can_only_be_recorded_once_the_booking_is_confirmed(): void
     {
         $booking = Booking::factory()->create(['total_amount' => 100000]);
+        $planner = $booking->planner;
+
+        $this->actingAs($planner)->post('/payments', ['booking_id' => $booking->id, 'amount' => 30000, 'method' => 'cash'])
+            ->assertSessionHasErrors('booking_id');
+        $this->assertSame(0, Payment::count());
+
+        // The pending booking isn't offered in the form, and its page explains why.
+        $this->actingAs($planner)->get("/payments?booking_id={$booking->id}")->assertOk()
+            ->assertDontSee('<option value="'.$booking->id.'"', false)->assertSee("This booking isn't confirmed yet", false);
+        $this->actingAs($planner)->get("/bookings/{$booking->id}")->assertSee('Available once the booking is confirmed.');
+
+        $this->actingAs($planner)->patch("/bookings/{$booking->id}/confirm");
+        $this->actingAs($planner)->post('/payments', ['booking_id' => $booking->id, 'amount' => 30000, 'method' => 'cash'])
+            ->assertSessionHasNoErrors();
+        $this->assertSame(1, Payment::count());
+    }
+
+    public function test_payment_date_is_always_today_and_history_shows_newest_first(): void
+    {
+        $booking = Booking::factory()->confirmed()->create(['total_amount' => 100000]);
         $planner = $booking->planner;
         Payment::create(['booking_id' => $booking->id, 'amount' => 10000, 'payment_date' => today()->subMonth(), 'method' => 'cash', 'receipt_number' => 'OLD-1']);
 
@@ -102,7 +122,7 @@ class OperationsTest extends TestCase
 
     public function test_couple_is_notified_of_every_recorded_payment_with_its_details(): void
     {
-        $booking = Booking::factory()->create(['total_amount' => 100000, 'client_name' => 'Cha & Ethan']);
+        $booking = Booking::factory()->confirmed()->create(['total_amount' => 100000, 'client_name' => 'Cha & Ethan']);
 
         $this->actingAs($booking->planner)->post('/payments', [
             'booking_id' => $booking->id, 'amount' => 30000, 'method' => 'gcash', 'receipt_number' => 'OR-123', 'notes' => 'Down payment',
