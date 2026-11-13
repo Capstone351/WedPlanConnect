@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['role', 'name', 'bride_name', 'groom_name', 'email', 'phone', 'password', 'bio'])]
+#[Fillable(['role', 'name', 'bride_name', 'groom_name', 'bride_first_name', 'bride_last_name', 'groom_first_name', 'groom_last_name', 'email', 'phone', 'password', 'bio'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -44,6 +44,18 @@ class User extends Authenticatable
         ];
     }
 
+    protected static function booted(): void
+    {
+        // The full names shown everywhere ("Ana Santos & Miguel Reyes") are built from the first and last names.
+        static::saving(function (User $user) {
+            foreach (['bride', 'groom'] as $who) {
+                if ($user->isDirty(["{$who}_first_name", "{$who}_last_name"]) && $user->{"{$who}_first_name"}) {
+                    $user->{"{$who}_name"} = trim($user->{"{$who}_first_name"}.' '.$user->{"{$who}_last_name"});
+                }
+            }
+        });
+    }
+
     public function hasRole(string ...$roles): bool
     {
         return in_array($this->role, $roles, true);
@@ -61,9 +73,12 @@ class User extends Authenticatable
      */
     public static function coupleNameRules(): array
     {
-        $onePerson = ['required', 'string', 'max:100', 'not_regex:/[&\/+]|\s(and|at)\s/i'];
+        $onePerson = ['required', 'string', 'max:60', 'not_regex:/[&\/+]|\s(and|at)\s/i'];
 
-        return ['bride_name' => $onePerson, 'groom_name' => $onePerson];
+        return [
+            'bride_first_name' => $onePerson, 'bride_last_name' => $onePerson,
+            'groom_first_name' => $onePerson, 'groom_last_name' => $onePerson,
+        ];
     }
 
     /**
@@ -71,12 +86,16 @@ class User extends Authenticatable
      */
     public static function coupleNameMessages(): array
     {
-        return [
-            'bride_name.required' => "Please enter the bride's name.",
-            'groom_name.required' => "Please enter the groom's name.",
-            'bride_name.not_regex' => "Enter only the bride's name here.",
-            'groom_name.not_regex' => "Enter only the groom's name here.",
-        ];
+        $messages = [];
+
+        foreach (['bride' => "bride's", 'groom' => "groom's"] as $who => $whose) {
+            foreach (['first' => 'first name', 'last' => 'last name'] as $part => $label) {
+                $messages["{$who}_{$part}_name.required"] = "Please enter the {$whose} {$label}.";
+                $messages["{$who}_{$part}_name.not_regex"] = "Enter only the {$whose} {$label} here.";
+            }
+        }
+
+        return $messages;
     }
 
     /** "Ana Santos & Miguel Reyes", or null until both names are known. */

@@ -5,26 +5,33 @@
     <form method="POST" action="{{ route('register') }}" class="mt-8 space-y-4">
         @csrf
         <div>
-            <label for="name" class="label">Full name</label>
+            <label for="name" class="label">First contact person <span class="font-normal text-stone-400">(full name)</span></label>
             <input id="name" name="name" value="{{ old('name') }}" required maxlength="150" autocomplete="name" placeholder="e.g. Ana Santos"
                 @class(['input', 'input-error' => $errors->has('name')])>
-            @error('name')<p class="error-text">{{ $message }}</p>@else<p class="hint">One person per account.</p>@enderror
+            @error('name')<p class="error-text">{{ $message }}</p>@else<p class="hint">The person your planner will contact first, and who manages this account.</p>@enderror
         </div>
+        @php
+            $nameFields = [
+                'bride' => ["Bride's", 'Ana', 'Santos'],
+                'groom' => ["Groom's", 'Miguel', 'Reyes'],
+            ];
+        @endphp
         <fieldset class="rounded-xl border border-line p-4">
             <legend class="px-1 text-sm font-semibold text-ink">The couple</legend>
-            <div class="grid gap-4 sm:grid-cols-2">
-                <div>
-                    <label for="bride_name" class="label">Bride's name</label>
-                    <input id="bride_name" name="bride_name" value="{{ old('bride_name') }}" required maxlength="100" placeholder="e.g. Ana Santos"
-                        @class(['input', 'input-error' => $errors->has('bride_name')])>
-                    @error('bride_name')<p class="error-text">{{ $message }}</p>@enderror
-                </div>
-                <div>
-                    <label for="groom_name" class="label">Groom's name</label>
-                    <input id="groom_name" name="groom_name" value="{{ old('groom_name') }}" required maxlength="100" placeholder="e.g. Miguel Reyes"
-                        @class(['input', 'input-error' => $errors->has('groom_name')])>
-                    @error('groom_name')<p class="error-text">{{ $message }}</p>@enderror
-                </div>
+            <div class="space-y-4">
+                @foreach ($nameFields as $who => [$whose, $firstExample, $lastExample])
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        @foreach (['first' => $firstExample, 'last' => $lastExample] as $part => $example)
+                            @php $field = "{$who}_{$part}_name"; @endphp
+                            <div>
+                                <label for="{{ $field }}" class="label">{{ $whose }} {{ $part }} name</label>
+                                <input id="{{ $field }}" name="{{ $field }}" value="{{ old($field) }}" required maxlength="60" placeholder="e.g. {{ $example }}"
+                                    autocomplete="off" @class(['input', 'input-error' => $errors->has($field)])>
+                                @error($field)<p class="error-text">{{ $message }}</p>@enderror
+                            </div>
+                        @endforeach
+                    </div>
+                @endforeach
             </div>
             <p class="hint">Shown on your wedding dashboard. You can change them later in My Account.</p>
         </fieldset>
