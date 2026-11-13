@@ -32,7 +32,8 @@
                     </div>
                     <div class="sm:col-span-2">
                         <label for="venue" class="label">Venue</label>
-                        <input id="venue" name="venue" value="{{ old('venue', $entry->venue) }}" maxlength="200" class="input" placeholder="e.g. Casa Gorordo Museum, Cebu City">
+                        <input id="venue" name="venue" value="{{ old('venue', $entry->venue) }}" maxlength="200" list="cebu-venues" autocomplete="off" class="input" placeholder="e.g. Casa Gorordo Museum, Cebu City">
+                        <x-place-options id="cebu-venues" />
                     </div>
                     <div class="sm:col-span-2">
                         <label for="summary" class="label">Short description</label>

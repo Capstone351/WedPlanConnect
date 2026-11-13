@@ -36,8 +36,9 @@
                     </div>
                     <div>
                         <label for="location" class="label">Place or link <span class="font-normal text-stone-400">(optional)</span></label>
-                        <input id="location" name="location" maxlength="200" value="{{ old('location') }}" class="input"
-                            placeholder="e.g. FMT office, a café, or a Google Meet link">
+                        <input id="location" name="location" maxlength="200" list="cebu-meetup" autocomplete="off" value="{{ old('location') }}" class="input"
+                            placeholder="Start typing for Cebu places, or paste a Google Meet link">
+                        <x-place-options id="cebu-meetup" type="meetup" />
                     </div>
                     <div>
                         <label for="agenda" class="label">What you'd like to talk about <span class="font-normal text-stone-400">(optional)</span></label>

@@ -19,7 +19,8 @@
                 </div>
                 <div>
                     <label for="venue" class="label">Venue</label>
-                    <input id="venue" name="venue" value="{{ old('venue', $booking->venue) }}" maxlength="200" placeholder="e.g. Casa Gorordo Museum, Cebu City" class="input">
+                    <input id="venue" name="venue" value="{{ old('venue', $booking->venue) }}" maxlength="200" list="cebu-venues" autocomplete="off" placeholder="e.g. Casa Gorordo Museum, Cebu City" class="input">
+                    <x-place-options id="cebu-venues" />
                     <p class="hint">Can stay blank until agreed with the couple. Needed before confirming.</p>
                 </div>
                 <div>
