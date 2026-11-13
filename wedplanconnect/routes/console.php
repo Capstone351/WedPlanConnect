@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Booking;
 use App\Models\Task;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -15,3 +16,12 @@ Artisan::command('tasks:flag-overdue', function () {
 })->purpose('Flag incomplete tasks whose due date has passed');
 
 Schedule::command('tasks:flag-overdue')->daily();
+
+// Frees dates held by bookings the planner never confirmed (also runs whenever availability is checked).
+Artisan::command('bookings:release-expired', function () {
+    Booking::releaseExpiredHolds();
+
+    $this->info('Released any expired booking holds.');
+})->purpose('Cancel pending bookings that were not confirmed in time');
+
+Schedule::command('bookings:release-expired')->daily();

@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['booking_id', 'amount', 'payment_date', 'method', 'receipt_number', 'notes'])]
+#[Fillable(['booking_id', 'amount', 'payment_date', 'method', 'receipt_number', 'notes', 'recorded_by'])]
 class Payment extends Model
 {
     use HasFactory, SoftDeletes;
@@ -31,6 +31,18 @@ class Payment extends Model
     public function booking(): BelongsTo
     {
         return $this->belongsTo(Booking::class)->withTrashed();
+    }
+
+    /** Staff member who recorded the payment. */
+    public function recorder(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'recorded_by')->withTrashed();
+    }
+
+    /** Staff member who voided the payment, if it was voided. */
+    public function voider(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'voided_by')->withTrashed();
     }
 
     /** Newest payments first; same-day payments by the order they were recorded. */

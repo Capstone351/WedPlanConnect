@@ -27,7 +27,7 @@ class BookingRequestController extends Controller
         ]);
         $venue = $data['venue'] ?? null;
 
-        $booking = DB::transaction(function () use ($request, $venue) {
+        $send = fn () => DB::transaction(function () use ($request, $venue) {
             // Lock the couple's row so a double click can't send two bookings.
             $user = User::lockForUpdate()->findOrFail($request->user()->id);
             $this->guardReady($user, $venue);
@@ -49,6 +49,10 @@ class BookingRequestController extends Controller
             ]);
         });
 
+        // Lock the wedding date too, so two couples sending for the same day are checked one at a time.
+        $date = $request->user()->wedding_date;
+        $booking = $date ? Booking::withDateLock($date->toDateString(), $send) : $send();
+
         $booking->planner->notify(new BookingRequested($booking));
 
         return redirect()->route('client.wedding-date')
@@ -61,6 +65,11 @@ class BookingRequestController extends Controller
     private function guardReady(User $user, ?string $venue): void
     {
         $fail = fn (string $message) => throw ValidationException::withMessages(['booking' => $message]);
+
+        // Stops throwaway accounts from holding a planner's date.
+        if (! $user->hasVerifiedEmail()) {
+            $fail('Please verify your email address before sending your booking. Use the link we emailed you, or send a new one from My Wedding.');
+        }
 
         if ($user->clientBookings()->active()->exists()) {
             $fail('You already have a booking. Please contact your planner about any changes.');

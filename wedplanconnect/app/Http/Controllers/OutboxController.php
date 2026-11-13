@@ -7,7 +7,7 @@ use Illuminate\Http\Response;
 use Illuminate\View\View;
 
 /**
- * Test-mode email outbox for staff (admin and planners). Available only while emails
+ * Test-mode email outbox, for the admin only (it holds password reset links and one-time PINs). Available only while emails
  * are written to the log instead of being delivered, e.g. during demos.
  */
 class OutboxController extends Controller

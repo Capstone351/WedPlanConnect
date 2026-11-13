@@ -50,6 +50,12 @@ Route::middleware('guest')->group(function () {
 
 Route::post('/logout', [Auth\LoginController::class, 'logout'])->middleware('auth')->name('logout');
 
+// Email verification: the signed link works without logging in (e.g. opened on a phone).
+Route::get('/email/verify/{id}/{hash}', [Auth\EmailVerificationController::class, 'verify'])
+    ->middleware(['signed', 'throttle:6,1'])->whereNumber('id')->name('verification.verify');
+Route::post('/email/verification-notification', [Auth\EmailVerificationController::class, 'send'])
+    ->middleware(['auth', 'throttle:3,1'])->name('verification.send');
+
 /*
 | QR Code Status Tracker with OTP verification (UC-10) — no login required
 */
@@ -150,9 +156,11 @@ Route::middleware('auth')->group(function () {
         Route::patch('/portfolio/{portfolio}/photos/{photo}/cover', [PortfolioController::class, 'cover'])->name('portfolio.photos.cover');
         Route::delete('/portfolio/{portfolio}/photos/{photo}', [PortfolioController::class, 'destroyPhoto'])->name('portfolio.photos.destroy');
 
-        // Test-mode email outbox (only while MAIL_MAILER=log)
-        Route::get('/outbox', [OutboxController::class, 'index'])->name('outbox.index');
-        Route::get('/outbox/{message}', [OutboxController::class, 'show'])->name('outbox.show');
+        // Test-mode email outbox (only while MAIL_MAILER=log). Admin only: it holds password reset links and one-time PINs.
+        Route::middleware('role:admin')->group(function () {
+            Route::get('/outbox', [OutboxController::class, 'index'])->name('outbox.index');
+            Route::get('/outbox/{message}', [OutboxController::class, 'show'])->name('outbox.show');
+        });
 
         // Reports (UC-09)
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');

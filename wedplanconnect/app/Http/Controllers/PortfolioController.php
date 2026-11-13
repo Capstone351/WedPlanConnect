@@ -36,6 +36,7 @@ class PortfolioController extends Controller
         // Pre-fill from a completed booking ("Add to portfolio").
         if ($request->filled('booking_id')) {
             $booking = Booking::findOrFail($request->integer('booking_id'));
+            $this->authorizeBooking($booking);
             $entry->fill([
                 'booking_id' => $booking->id,
                 'title' => $this->firstNames($booking->client_name),
@@ -122,6 +123,11 @@ class PortfolioController extends Controller
             'photos.*.max' => 'Each photo must be 4 MB or smaller.',
             'photos.*.image' => 'Photos must be JPG, PNG, or WebP images.',
         ]);
+
+        // Only the wedding's own planner (or the admin) can feature it; keeping an existing link is always allowed.
+        if (! empty($data['booking_id']) && (int) $data['booking_id'] !== $entry?->booking_id) {
+            $this->authorizeBooking(Booking::findOrFail($data['booking_id']));
+        }
 
         unset($data['photos']);
         $data['consent_confirmed'] = $request->boolean('consent_confirmed');

@@ -75,6 +75,11 @@ class InventoryController extends Controller
             'reason' => ['nullable', 'string', 'max:255'],
         ]);
 
+        // Stock can only be committed to a wedding the planner manages.
+        if (! empty($data['booking_id'])) {
+            $this->authorizeBooking(Booking::findOrFail($data['booking_id']));
+        }
+
         $delta = $data['direction'] === 'in' ? $data['amount'] : -$data['amount'];
 
         if ($item->quantity + $delta < 0) {

@@ -52,6 +52,8 @@ class PasswordResetController extends Controller
                     'remember_token' => Str::random(60),
                     'failed_attempts' => 0,
                     'locked_until' => null,
+                    // Opening the emailed reset link proves they own the address.
+                    'email_verified_at' => $user->email_verified_at ?? now(),
                 ])->save();
             }
         );

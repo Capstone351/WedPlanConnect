@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Notifications\BookingCancelled;
 use App\Support\Network;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -14,7 +15,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
 #[Fillable(['planner_id', 'client_id', 'client_name', 'contact_number', 'event_date', 'venue', 'package', 'total_amount', 'status'])]
@@ -79,6 +82,13 @@ class Booking extends Model
 
     protected static function booted(): void
     {
+        // A new request holds the planner's date for a limited time until the planner answers it.
+        static::creating(function (Booking $booking) {
+            if ($booking->status === 'pending' && ! $booking->hold_expires_at) {
+                $booking->hold_expires_at = now()->addDays(config('wedplan.pending_hold_days'));
+            }
+        });
+
         static::saved(function (Booking $booking) {
             // A wedding's open tasks always belong to its current planner.
             if ($booking->wasChanged('planner_id') && $booking->planner_id) {
@@ -146,6 +156,7 @@ class Booking extends Model
             'event_date' => 'date',
             'total_amount' => 'decimal:2',
             'otp_expires_at' => 'datetime',
+            'hold_expires_at' => 'datetime',
         ];
     }
 
@@ -200,6 +211,118 @@ class Booking extends Model
         return $this->hasMany(Payment::class);
     }
 
+    /** Payments that were voided; kept so the record shows what was removed, by whom, and why. */
+    public function voidedPayments(): HasMany
+    {
+        return $this->hasMany(Payment::class)->onlyTrashed();
+    }
+
+    /** Who changed which detail and why, newest first. */
+    public function changes(): HasMany
+    {
+        return $this->hasMany(BookingChange::class)->latest('id');
+    }
+
+    /**
+     * Records every tracked detail that differs from $before, with who changed it and why.
+     *
+     * @param  array<string, mixed>  $before  attribute values before the change
+     * @return Collection<int, BookingChange>
+     */
+    public function recordChanges(array $before, ?string $reason, ?User $by): Collection
+    {
+        return collect(array_keys(BookingChange::LABELS))
+            ->filter(fn (string $field) => array_key_exists($field, $before)
+                && self::comparable($field, $before[$field]) !== self::comparable($field, $this->getAttribute($field)))
+            ->map(fn (string $field) => $this->changes()->create([
+                'user_id' => $by?->id,
+                'field' => $field,
+                'old_value' => self::comparable($field, $before[$field]),
+                'new_value' => self::comparable($field, $this->getAttribute($field)),
+                'reason' => $reason,
+            ]))
+            ->values()
+            ->toBase();
+    }
+
+    /** Normalizes a value so "100000" and 100000.00, or a date and its string, compare as equal. */
+    private static function comparable(string $field, mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return match ($field) {
+            'event_date' => Carbon::parse($value)->toDateString(),
+            'total_amount' => number_format((float) $value, 2, '.', ''),
+            default => (string) $value,
+        };
+    }
+
+    /** When an unconfirmed booking stops holding the planner's date. */
+    public function holdExpiresAt(): ?CarbonInterface
+    {
+        return $this->status === 'pending' ? $this->hold_expires_at : null;
+    }
+
+    /**
+     * Cancels the booking: frees the date, invalidates the QR code, archives its open tasks,
+     * records the reason, and tells the couple.
+     */
+    public function cancelWithReason(string $reason, ?User $by): void
+    {
+        $before = ['status' => $this->status];
+
+        $this->update(['status' => 'cancelled']);
+        $this->invalidateQrAccess();
+        $this->tasks()->open()->delete();
+        $this->recordChanges($before, $reason, $by);
+
+        $this->client?->notify(new BookingCancelled($this, $reason));
+    }
+
+    /**
+     * Releases dates held by bookings the planner never confirmed in time, so throwaway or
+     * forgotten requests can't block a planner forever. Runs at most once per request.
+     */
+    public static function releaseExpiredHolds(): void
+    {
+        once(function () {
+            self::where('status', 'pending')
+                ->where('hold_expires_at', '<', now())
+                ->each(fn (Booking $booking) => $booking->cancelWithReason(
+                    'The planner did not confirm this booking within '.config('wedplan.pending_hold_days').' days, so the date was released.',
+                    null,
+                ));
+        });
+    }
+
+    /**
+     * Runs $callback while holding a lock on the wedding date, so two bookings sent at the same moment
+     * are checked for conflicts one after the other instead of both slipping through.
+     *
+     * @template T
+     *
+     * @param  callable(): T  $callback
+     * @return T
+     */
+    public static function withDateLock(string $eventDate, callable $callback): mixed
+    {
+        $date = Carbon::parse($eventDate)->toDateString();
+
+        return Cache::lock("booking-date:{$date}", 10)->block(5, $callback);
+    }
+
+    /** The planner's other active wedding on that date, if any (a planner handles one wedding per day). */
+    public static function plannerBusyOn(int $plannerId, string $eventDate, ?int $ignoreId = null): ?self
+    {
+        self::releaseExpiredHolds();
+
+        return self::active()->where('planner_id', $plannerId)->whereDate('event_date', $eventDate)
+            ->when($ignoreId, fn (Builder $q) => $q->whereKeyNot($ignoreId))
+            ->first();
+    }
+
     public function scopeActive(Builder $query): Builder
     {
         return $query->whereIn('status', self::ACTIVE_STATUSES);
@@ -235,6 +358,8 @@ class Booking extends Model
      */
     public static function plannerIdsBookedOn(CarbonInterface $date): Collection
     {
+        self::releaseExpiredHolds();
+
         return self::active()->whereDate('event_date', $date->toDateString())->distinct()->pluck('planner_id');
     }
 
@@ -244,6 +369,8 @@ class Booking extends Model
      */
     public static function findConflict(string $eventDate, ?string $venue, ?int $ignoreId = null): ?self
     {
+        self::releaseExpiredHolds();
+
         $query = self::active()->whereDate('event_date', $eventDate);
 
         if (config('wedplan.conflict_scope') === 'date_venue') {

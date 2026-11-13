@@ -48,9 +48,11 @@ class RegisterController extends Controller
         $user = User::create([...Arr::except($data, 'privacy'), 'role' => 'client']);
         $user->forceFill(['last_login_at' => now()])->save();
 
+        $user->sendEmailVerificationNotification();
+
         Auth::login($user);
         $request->session()->regenerate();
 
-        return redirect()->route('client.dashboard')->with('status', 'Welcome to WedPlanConnect! Your planner will link your wedding booking to this account.');
+        return redirect()->route('client.dashboard')->with('status', "Welcome to WedPlanConnect! We've emailed you a link to verify your email address.");
     }
 }

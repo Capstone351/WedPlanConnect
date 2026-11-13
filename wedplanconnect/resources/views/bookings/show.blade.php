@@ -28,12 +28,25 @@
             @endif
         @endif
         @if ($active)
-            <form method="POST" action="{{ route('bookings.cancel', $booking) }}" data-confirm="Cancel this booking? Its QR code will stop working.">
-                @csrf @method('PATCH')
-                <button class="btn-danger">Cancel booking</button>
-            </form>
+            <details class="relative" @if ($errors->has('reason')) open @endif>
+                <summary class="btn-danger cursor-pointer list-none">{{ $booking->status === 'pending' ? 'Decline / cancel' : 'Cancel booking' }}</summary>
+                <form method="POST" action="{{ route('bookings.cancel', $booking) }}" class="card absolute right-0 z-20 mt-2 w-80 space-y-3 p-4 text-left">
+                    @csrf @method('PATCH')
+                    <label for="reason" class="label">Reason <span class="font-normal text-stone-400">(the couple will see this)</span></label>
+                    <textarea id="reason" name="reason" rows="3" maxlength="500" required class="input" placeholder="e.g. The planner is not available on this date.">{{ old('reason') }}</textarea>
+                    @error('reason')<p class="error-text">{{ $message }}</p>@enderror
+                    <p class="hint">The date is freed, the QR code stops working, and open tasks are archived.</p>
+                    <button class="btn-danger w-full">Cancel this booking</button>
+                </form>
+            </details>
         @endif
     </x-slot:actions>
+
+    @if ($booking->status === 'pending' && $booking->holdExpiresAt())
+        <div class="mb-4 rounded-xl border border-line bg-white px-4 py-3 text-sm text-stone-600 print:hidden">
+            This request holds {{ $booking->event_date->format('F j') }} for the couple until <strong>{{ $booking->holdExpiresAt()->format('F j, Y') }}</strong>. Confirm or decline it before then, or the date is released automatically.
+        </div>
+    @endif
 
     @if ($booking->status === 'pending' && ($missing = $booking->missingBeforeConfirm()))
         <div class="mb-6 flex flex-wrap items-center gap-3 rounded-xl border border-gold-300 bg-gold-50 px-4 py-3 text-sm text-ink print:hidden">
@@ -513,6 +526,23 @@
                 <div class="border-t border-stone-100 px-5 py-3">
                     <a href="{{ route('bookings.contract', $booking) }}" class="btn-secondary btn-sm w-full"><x-icon name="download" class="size-4" /> Contract summary (PDF)</a>
                 </div>
+            </div>
+
+            {{-- Change history: who changed the date, venue, package, price, planner or status, and why --}}
+            <div class="card" id="history">
+                <div class="card-header"><h2 class="card-title">Change history</h2></div>
+                <ul class="divide-y divide-stone-100 text-sm">
+                    @forelse ($booking->changes as $change)
+                        <li class="px-5 py-3">
+                            <div class="font-medium">{{ $change->label() }}</div>
+                            <div class="text-stone-700">{{ \App\Models\BookingChange::display($change->field, $change->old_value) }} → {{ \App\Models\BookingChange::display($change->field, $change->new_value) }}</div>
+                            @if ($change->reason)<div class="text-xs text-stone-600">Reason: {{ $change->reason }}</div>@endif
+                            <div class="text-xs text-stone-500">{{ $change->user?->name ?? 'System' }} · {{ $change->created_at->format('M j, Y g:i A') }}</div>
+                        </li>
+                    @empty
+                        <li class="px-5 py-5 text-center text-stone-500">No changes since the booking was made.</li>
+                    @endforelse
+                </ul>
             </div>
         </div>
     </div>
