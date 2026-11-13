@@ -80,6 +80,11 @@ class Booking extends Model
     protected static function booted(): void
     {
         static::saved(function (Booking $booking) {
+            // A wedding's open tasks always belong to its current planner.
+            if ($booking->wasChanged('planner_id') && $booking->planner_id) {
+                $booking->tasks()->open()->update(['assigned_to' => $booking->planner_id]);
+            }
+
             if ($booking->wasRecentlyCreated || $booking->wasChanged(['package', 'event_date', 'planner_id'])) {
                 $booking->syncPackageTasks();
             }

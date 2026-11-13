@@ -35,18 +35,11 @@
                     @foreach (\App\Models\Task::PRIORITIES as $p)<option value="{{ $p }}" @selected(request('priority') === $p)>{{ ucfirst($p) }}</option>@endforeach
                 </select>
             </div>
-            <div>
-                <label class="label" for="assigned_to">Assignee</label>
-                <select id="assigned_to" name="assigned_to" class="input" data-autosubmit>
-                    <option value="">Anyone</option>
-                    @foreach ($assignees as $a)<option value="{{ $a->id }}" @selected(request('assigned_to') == $a->id)>{{ $a->name }}</option>@endforeach
-                </select>
-            </div>
             <label class="flex items-center gap-2 pb-2 text-sm"><input type="checkbox" name="overdue" value="1" data-autosubmit @checked(request('overdue'))> Overdue only</label>
         </form>
         <div class="overflow-x-auto">
             <table class="table">
-                <thead><tr><th>Task</th><th>Project</th><th>Due</th><th>Priority</th><th>Assigned to</th><th>Status</th><th class="text-right">Actions</th></tr></thead>
+                <thead><tr><th>Task</th><th>Project</th><th>Due</th><th>Priority</th><th>Status</th><th class="text-right">Actions</th></tr></thead>
                 <tbody>
                     @forelse ($tasks as $t)
                         <tr>
@@ -66,7 +59,6 @@
                                 @if ($t->is_overdue && $t->status !== 'completed')<div><span class="badge-red">Overdue</span></div>@endif
                             </td>
                             <td><span class="badge-{{ \App\Models\Task::priorityBadge($t->priority) }}">{{ ucfirst($t->priority) }}</span></td>
-                            <td>{{ $t->assignee?->name }}</td>
                             <td>
                                 <form method="POST" action="{{ route('tasks.status', $t) }}">
                                     @csrf @method('PATCH')
@@ -83,7 +75,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="7" class="py-10 text-center text-stone-500">No tasks match your filters.</td></tr>
+                        <tr><td colspan="6" class="py-10 text-center text-stone-500">No tasks match your filters.</td></tr>
                     @endforelse
                 </tbody>
             </table>

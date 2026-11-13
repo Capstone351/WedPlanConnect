@@ -4,14 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\Booking;
 use App\Models\Task;
-use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 /**
- * UC-05 Create and Assign Tasks.
+ * UC-05 Create and Assign Tasks. Tasks are assigned automatically to the wedding's planner.
  */
 class TaskController extends Controller
 {
@@ -21,11 +20,10 @@ class TaskController extends Controller
         $base = Task::visibleTo($user);
 
         $tasks = (clone $base)
-            ->with('booking', 'assignee')
+            ->with('booking')
             ->when($request->filled('booking_id'), fn ($q) => $q->where('booking_id', $request->integer('booking_id')))
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
             ->when($request->filled('priority'), fn ($q) => $q->where('priority', $request->string('priority')))
-            ->when($request->filled('assigned_to'), fn ($q) => $q->where('assigned_to', $request->integer('assigned_to')))
             ->when($request->boolean('overdue'), fn ($q) => $q->overdue())
             ->orderByRaw("CASE status WHEN 'ongoing' THEN 0 WHEN 'pending' THEN 1 ELSE 2 END")
             ->orderBy('due_date')
@@ -42,7 +40,6 @@ class TaskController extends Controller
             'tasks' => $tasks,
             'stats' => $stats,
             'bookings' => Booking::visibleTo($user)->active()->orderBy('event_date')->get(['id', 'client_name', 'event_date']),
-            'assignees' => $this->assignees(),
         ]);
     }
 
@@ -51,12 +48,10 @@ class TaskController extends Controller
         return view('tasks.form', [
             'task' => new Task([
                 'booking_id' => $request->integer('booking_id') ?: null,
-                'assigned_to' => $request->user()->role === 'planner' ? $request->user()->id : null,
                 'priority' => 'medium',
                 'status' => 'pending',
             ]),
             'bookings' => Booking::visibleTo($request->user())->active()->orderBy('event_date')->get(['id', 'client_name', 'event_date']),
-            'assignees' => $this->assignees(),
         ]);
     }
 
@@ -74,7 +69,6 @@ class TaskController extends Controller
         return view('tasks.form', [
             'task' => $task,
             'bookings' => Booking::visibleTo($request->user())->orderBy('event_date')->get(['id', 'client_name', 'event_date']),
-            'assignees' => $this->assignees(),
         ]);
     }
 
@@ -109,7 +103,6 @@ class TaskController extends Controller
     {
         $data = $request->validate([
             'booking_id' => ['nullable', Rule::exists('bookings', 'id')->whereNull('deleted_at')],
-            'assigned_to' => ['required', Rule::exists('users', 'id')->whereIn('role', ['planner', 'admin'])->whereNull('deleted_at')],
             'title' => ['required', 'string', 'max:200'],
             'description' => ['nullable', 'string', 'max:5000'],
             'due_date' => array_filter(['required', 'date', $task ? null : 'after_or_equal:today']),
@@ -117,8 +110,14 @@ class TaskController extends Controller
             'status' => ['required', Rule::in(Task::STATUSES)],
         ], ['due_date.after_or_equal' => 'The due date cannot be in the past.']);
 
+        // Nobody picks an assignee: a wedding's tasks go to its planner, general tasks to whoever made them.
         if (! empty($data['booking_id'])) {
-            $this->authorizeBooking(Booking::findOrFail($data['booking_id']));
+            $booking = Booking::findOrFail($data['booking_id']);
+            $this->authorizeBooking($booking);
+            $data['assigned_to'] = $booking->planner_id;
+        } else {
+            // Editing a general task keeps its owner; a new one (or one moved off a wedding) goes to the editor.
+            $data['assigned_to'] = $task && $task->booking_id === null ? $task->assigned_to : $request->user()->id;
         }
 
         return $data;
@@ -127,11 +126,6 @@ class TaskController extends Controller
     private function authorizeTask(Task $task): void
     {
         abort_unless(Task::visibleTo(auth()->user())->whereKey($task->id)->exists(), 403);
-    }
-
-    private function assignees()
-    {
-        return User::whereIn('role', ['planner', 'admin'])->orderBy('name')->get(['id', 'name', 'role']);
     }
 
     private function redirectAfterSave(Request $request, Task $task, string $message): RedirectResponse

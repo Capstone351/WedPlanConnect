@@ -23,14 +23,7 @@
                         <option value="{{ $b->id }}" @selected(old('booking_id', $task->booking_id) == $b->id)>{{ $b->client_name }} — {{ $b->event_date->format('M j, Y') }}</option>
                     @endforeach
                 </select>
-            </div>
-            <div>
-                <label for="assigned_to" class="label">Assign to</label>
-                <select id="assigned_to" name="assigned_to" required class="input">
-                    @foreach ($assignees as $a)
-                        <option value="{{ $a->id }}" @selected(old('assigned_to', $task->assigned_to) == $a->id)>{{ $a->name }} ({{ $a->roleLabel() }})</option>
-                    @endforeach
-                </select>
+                <p class="hint">Wedding tasks go to that wedding's planner automatically. General tasks stay with you.</p>
             </div>
             <div>
                 <label for="due_date" class="label">Due date</label>

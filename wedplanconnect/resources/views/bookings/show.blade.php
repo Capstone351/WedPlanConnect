@@ -325,7 +325,7 @@
                         <li class="flex flex-wrap items-center justify-between gap-3 px-5 py-3 text-sm">
                             <div>
                                 <div @class(['font-medium', 'text-stone-400 line-through' => $t->status === 'completed'])>{{ $t->title }}</div>
-                                <div class="text-xs text-stone-500">Due {{ $t->due_date->format('M j, Y') }} · {{ $t->assignee?->name }}</div>
+                                <div class="text-xs text-stone-500">Due {{ $t->due_date->format('M j, Y') }}</div>
                             </div>
                             <div class="flex items-center gap-2">
                                 @if ($t->is_overdue && $t->status !== 'completed')<span class="badge-red">Overdue</span>@endif
