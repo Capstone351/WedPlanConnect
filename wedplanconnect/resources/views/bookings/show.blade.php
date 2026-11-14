@@ -6,6 +6,7 @@
 <x-layouts.app :title="'Booking #'.$booking->id" :heading="$booking->client_name"
     :subheading="'Booking #'.$booking->id.' · '.$booking->event_date->format('l, F j, Y').' · '.$booking->venueLabel()">
     <x-slot:actions>
+        <a href="{{ route('bookings.index') }}" class="btn-secondary">← Back to bookings</a>
         <span class="badge-{{ $booking->statusBadge() }} px-3 py-1 text-sm">{{ ucfirst($booking->status) }}</span>
         @if ($active)
             <a href="{{ route('bookings.edit', $booking) }}" class="btn-secondary">Edit</a>
