@@ -1,4 +1,4 @@
-<x-layouts.app title="Tasks" heading="To-Do Tasks" subheading="Wedding preparation tasks. Overdue tasks are flagged automatically every day.">
+<x-layouts.app title="Tasks" heading="To-Do Tasks" subheading="What's left to prepare, soonest due first. Overdue tasks are flagged automatically every day.">
     <x-slot:actions>
         <a href="{{ route('tasks.create') }}" class="btn-primary"><x-icon name="plus" class="size-4" /> Add New Task</a>
     </x-slot:actions>
@@ -17,7 +17,7 @@
                 <select id="booking_id" name="booking_id" class="input" data-autosubmit>
                     <option value="">All projects</option>
                     @foreach ($bookings as $b)
-                        <option value="{{ $b->id }}" @selected(request('booking_id') == $b->id)>{{ $b->client_name }} ({{ $b->event_date->format('M j') }})</option>
+                        <option value="{{ $b->id }}" @selected(request('booking_id') == $b->id)>{{ $b->client_name }} ({{ $b->event_date->format('M j, Y') }}){{ $b->status === 'completed' ? ' · completed' : '' }}{{ $b->status === 'pending' ? ' · awaiting confirmation' : '' }}</option>
                     @endforeach
                 </select>
             </div>
@@ -36,6 +36,7 @@
                 </select>
             </div>
             <label class="flex items-center gap-2 pb-2 text-sm"><input type="checkbox" name="overdue" value="1" data-autosubmit @checked(request('overdue'))> Overdue only</label>
+            <label class="flex items-center gap-2 pb-2 text-sm"><input type="checkbox" name="completed" value="1" data-autosubmit @checked(request('completed'))> Show completed</label>
         </form>
         <div class="overflow-x-auto">
             <table class="table">
@@ -75,7 +76,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="6" class="py-10 text-center text-stone-500">No tasks match your filters.</td></tr>
+                        <tr><td colspan="6" class="py-10 text-center text-stone-500">{{ request()->hasAny(['booking_id', 'status', 'priority', 'overdue', 'completed']) ? 'No tasks match your filters.' : 'Nothing left to do. Tick "Show completed" to see finished tasks.' }}</td></tr>
                     @endforelse
                 </tbody>
             </table>

@@ -54,6 +54,12 @@ return [
     ],
     'package_coordinators_lead_days' => 30,
     'package_freebies_lead_days' => 14,
+    /*
+    | How much each inclusion matters to the wedding (not how early it is due).
+    | Inclusions not listed are medium; freebies are always low.
+    */
+    'package_high_priority' => ['Reception Area', 'Church Decoration', 'Venue Decoration', 'Bridal Dress', 'Photo/Video (w/ Pre-nup)', 'Hotel for Dress-up'],
+    'package_low_priority' => ['Confetti/Poppers', 'Give-away (30 pcs.)'],
 
     /*
     | Double-booking detection scope.

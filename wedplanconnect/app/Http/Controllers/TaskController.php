@@ -23,10 +23,14 @@ class TaskController extends Controller
             ->with('booking')
             ->when($request->filled('booking_id'), fn ($q) => $q->where('booking_id', $request->integer('booking_id')))
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
+            // A to-do list shows what is left; finished tasks only when asked for.
+            ->when(! $request->filled('status') && ! $request->boolean('completed'), fn ($q) => $q->open())
             ->when($request->filled('priority'), fn ($q) => $q->where('priority', $request->string('priority')))
             ->when($request->boolean('overdue'), fn ($q) => $q->overdue())
-            ->orderByRaw("CASE status WHEN 'ongoing' THEN 0 WHEN 'pending' THEN 1 ELSE 2 END")
+            // Soonest due first (so overdue work is on top), finished tasks last, importance breaks ties.
+            ->orderByRaw("CASE WHEN status = 'completed' THEN 1 ELSE 0 END")
             ->orderBy('due_date')
+            ->orderByRaw("CASE priority WHEN 'high' THEN 0 WHEN 'medium' THEN 1 ELSE 2 END")
             ->paginate(20)->withQueryString();
 
         $stats = [
@@ -39,7 +43,7 @@ class TaskController extends Controller
         return view('tasks.index', [
             'tasks' => $tasks,
             'stats' => $stats,
-            'bookings' => Booking::visibleTo($user)->active()->orderBy('event_date')->get(['id', 'client_name', 'event_date']),
+            'bookings' => Booking::visibleTo($user)->where('status', '!=', 'cancelled')->orderByDesc('event_date')->get(['id', 'client_name', 'event_date', 'status']),
         ]);
     }
 
@@ -101,18 +105,25 @@ class TaskController extends Controller
 
     private function validated(Request $request, ?Task $task = null): array
     {
+        $booking = $request->filled('booking_id') ? Booking::find($request->integer('booking_id')) : null;
+        $dueDateChanged = ! $task || $request->input('due_date') !== $task->due_date?->toDateString();
+        // A wedding task has to be done by the wedding; past weddings keep their old dates when edited.
+        $dueByWedding = $booking?->event_date && $booking->event_date->gte(today()) ? 'before_or_equal:'.$booking->event_date->toDateString() : null;
+
         $data = $request->validate([
             'booking_id' => ['nullable', Rule::exists('bookings', 'id')->whereNull('deleted_at')],
             'title' => ['required', 'string', 'max:200'],
             'description' => ['nullable', 'string', 'max:5000'],
-            'due_date' => array_filter(['required', 'date', $task ? null : 'after_or_equal:today']),
+            'due_date' => array_values(array_filter(['required', 'date', $dueDateChanged ? 'after_or_equal:today' : null, $dueByWedding])),
             'priority' => ['required', Rule::in(Task::PRIORITIES)],
             'status' => ['required', Rule::in(Task::STATUSES)],
-        ], ['due_date.after_or_equal' => 'The due date cannot be in the past.']);
+        ], [
+            'due_date.after_or_equal' => 'The due date cannot be in the past.',
+            'due_date.before_or_equal' => 'A wedding task must be due on or before the wedding ('.$booking?->event_date?->format('F j, Y').').',
+        ]);
 
         // Nobody picks an assignee: a wedding's tasks go to its planner, general tasks to whoever made them.
-        if (! empty($data['booking_id'])) {
-            $booking = Booking::findOrFail($data['booking_id']);
+        if ($booking) {
             $this->authorizeBooking($booking);
             $data['assigned_to'] = $booking->planner_id;
         } else {

@@ -75,6 +75,16 @@ class Booking extends Model
         return $tasks;
     }
 
+    /** Priority by how much the inclusion matters to the wedding, not by how early it is due. */
+    public static function packageTaskPriority(string $title): string
+    {
+        return match (true) {
+            in_array($title, config('wedplan.package_high_priority'), true), str_ends_with($title, 'On-the-Day Coordinators') => 'high',
+            in_array($title, config('wedplan.package_low_priority'), true), str_starts_with($title, 'Freebie: ') => 'low',
+            default => 'medium',
+        };
+    }
+
     /** Every task title any package can create, so package tasks can be told apart from the planner's own. */
     public static function allPackageTaskTitles(): array
     {
@@ -98,7 +108,8 @@ class Booking extends Model
                 $booking->tasks()->open()->update(['assigned_to' => $booking->planner_id]);
             }
 
-            if ($booking->wasRecentlyCreated || $booking->wasChanged(['package', 'event_date', 'planner_id'])) {
+            // The preparation list starts once the planner accepts the wedding, not when a couple only asks.
+            if ($booking->status === 'confirmed' && ($booking->wasRecentlyCreated || $booking->wasChanged(['status', 'package', 'event_date', 'planner_id']))) {
                 $booking->syncPackageTasks();
             }
         });
@@ -125,7 +136,7 @@ class Booking extends Model
             if (! array_key_exists($title, $wanted)) {
                 $task->delete();
             } else {
-                $task->update(['due_date' => $this->packageTaskDueDate($wanted[$title]), 'assigned_to' => $this->planner_id]);
+                $task->update(['due_date' => $this->packageTaskDueDate($wanted[$title]), 'assigned_to' => $this->planner_id, 'priority' => self::packageTaskPriority($title)]);
             }
         }
 
@@ -139,7 +150,7 @@ class Booking extends Model
                 'title' => $title,
                 'description' => "Included in {$this->package}. Arrange and confirm it before the wedding.",
                 'due_date' => $this->packageTaskDueDate($leadDays),
-                'priority' => $leadDays >= 120 ? 'high' : ($leadDays >= 45 ? 'medium' : 'low'),
+                'priority' => self::packageTaskPriority($title),
                 'status' => 'pending',
             ]);
         }
