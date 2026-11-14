@@ -65,7 +65,7 @@ class DemoPortfolioSeeder extends Seeder
             [
                 'title' => 'Mika & Ron',
                 'event_date' => '2025-04-12',
-                'venue' => 'Sacred Heart Parish, Cebu City',
+                'venue' => 'Montebello Villa Hotel, Banilad, Cebu City',
                 'theme' => 'Intimate Ceremony',
                 'summary' => 'An intimate church ceremony with white florals and a candlelit family dinner.',
             ],

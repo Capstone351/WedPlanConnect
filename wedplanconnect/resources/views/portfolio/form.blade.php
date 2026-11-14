@@ -31,7 +31,7 @@
                         <input id="theme" name="theme" value="{{ old('theme', $entry->theme) }}" maxlength="100" class="input" placeholder="e.g. Garden Romance">
                     </div>
                     <div class="sm:col-span-2">
-                        <label for="venue" class="label">Venue</label>
+                        <label for="venue" class="label">Reception venue</label>
                         <input id="venue" name="venue" value="{{ old('venue', $entry->venue) }}" maxlength="200" list="cebu-venues" autocomplete="off" class="input" placeholder="e.g. Casa Gorordo Museum, Cebu City">
                         <x-place-options id="cebu-venues" />
                     </div>

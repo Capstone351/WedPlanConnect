@@ -11,18 +11,22 @@ class PlaceSuggestionsTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_venue_fields_suggest_cebu_venues(): void
+    public function test_venue_fields_suggest_cebu_reception_venues_but_not_churches(): void
     {
         $planner = User::factory()->planner()->create();
         $client = User::factory()->create();
         $client->forceFill(['preferred_planner_id' => $planner->id, 'wedding_date' => today()->addMonths(6)])->save();
 
         $this->actingAs($client)->get('/my/wedding-date')->assertOk()
+            ->assertSee('Preferred reception venue')
             ->assertSee('list="cebu-venues"', false)->assertSee('<datalist id="cebu-venues">', false)
-            ->assertSee('Basilica Minore del Santo Niño, Cebu City')->assertSee('label="Church"', false);
+            ->assertSee('Shangri-La Mactan, Lapu-Lapu City')->assertSee('label="Hotel"', false)
+            ->assertDontSee('label="Church"', false)->assertDontSee('Basilica Minore del Santo Niño');
 
         $this->actingAs($planner)->get('/bookings/create')->assertOk()
-            ->assertSee('list="cebu-venues"', false)->assertSee('Radisson Blu Hotel Cebu, Cebu City');
+            ->assertSee('Reception venue')
+            ->assertSee('list="cebu-venues"', false)->assertSee('Radisson Blu Hotel Cebu, Cebu City')
+            ->assertDontSee('Cebu Metropolitan Cathedral');
     }
 
     public function test_meeting_place_suggests_cebu_meetup_spots(): void

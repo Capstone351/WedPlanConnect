@@ -39,7 +39,7 @@
         <tr><td class="k">Client</td><td>{{ $booking->client_name }}</td></tr>
         <tr><td class="k">Contact number</td><td>{{ $booking->contact_number }}</td></tr>
         <tr><td class="k">Event date</td><td>{{ $booking->event_date->format('l, F j, Y') }}</td></tr>
-        <tr><td class="k">Venue</td><td>{{ $booking->venueLabel() }}</td></tr>
+        <tr><td class="k">Reception venue</td><td>{{ $booking->venueLabel() }}</td></tr>
         <tr><td class="k">Package</td><td>{{ $booking->packageLabel() }}</td></tr>
         <tr><td class="k">Wedding planner</td><td>{{ $booking->planner->name }}</td></tr>
         <tr><td class="k">Booking status</td><td>{{ ucfirst($booking->status) }}</td></tr>

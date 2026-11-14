@@ -1,23 +1,14 @@
 <?php
 
 /*
-| Real places in Cebu suggested while typing a venue or a meeting place.
+| Real places in Cebu suggested while typing a reception venue or a meeting place.
 | Suggestions only: people can still type any place that isn't listed.
 | Grouped by kind; the group name is shown beside each suggestion.
+| The booking's venue is where the reception is held, so churches are not suggested.
 */
 return [
 
     'venues' => [
-        'Church' => [
-            'Basilica Minore del Santo Niño, Cebu City',
-            'Cebu Metropolitan Cathedral, Cebu City',
-            'Redemptorist Church, Cebu City',
-            'Sacred Heart Parish, Jakosalem St., Cebu City',
-            'San Nicolas de Tolentino Parish, Cebu City',
-            'Archdiocesan Shrine of St. Therese of the Child Jesus, Lahug, Cebu City',
-            'St. Pedro Calungsod Chapel, SM Seaside City Cebu',
-            'National Shrine of St. Joseph, Mandaue City',
-        ],
         'Hotel' => [
             'Radisson Blu Hotel Cebu, Cebu City',
             'Marco Polo Plaza Cebu, Nivel Hills, Cebu City',

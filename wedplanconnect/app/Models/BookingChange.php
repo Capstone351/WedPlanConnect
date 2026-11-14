@@ -16,7 +16,7 @@ class BookingChange extends Model
     /** Details whose changes are recorded, with the label shown to people. */
     public const LABELS = [
         'event_date' => 'Wedding date',
-        'venue' => 'Venue',
+        'venue' => 'Reception venue',
         'package' => 'Package',
         'total_amount' => 'Contract amount',
         'planner_id' => 'Planner',
