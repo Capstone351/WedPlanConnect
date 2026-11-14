@@ -62,7 +62,8 @@ class TaskAssignmentTest extends TestCase
             ->assertSeeInOrder(['Overdue pending', 'Due tomorrow', 'Ongoing but months away'])
             ->assertDontSee('Already finished');
 
-        $this->actingAs($planner)->get('/tasks?completed=1')->assertOk()->assertSeeInOrder(['Overdue pending', 'Ongoing but months away', 'Already finished']);
+        $this->actingAs($planner)->get('/tasks')->assertDontSee('Show completed');
+        $this->actingAs($planner)->get('/tasks?status=all')->assertOk()->assertSeeInOrder(['Overdue pending', 'Ongoing but months away', 'Already finished']);
         $this->actingAs($planner)->get('/tasks?status=completed')->assertOk()->assertSee('Already finished')->assertDontSee('Due tomorrow');
     }
 
