@@ -272,8 +272,9 @@ class ReportService
     private function clientPaymentHistory(User $user, $from, $to): array
     {
         $bookings = $this->bookings($user, $from, $to)->where('status', '!=', 'cancelled')
-            ->withSum('payments', 'amount')->withCount('payments')->withMax('payments', 'payment_date')
-            ->orderBy('client_name')->get();
+            ->withSum('payments', 'amount')->withCount('payments')->withMax('payments', 'payment_date')->withMax('payments', 'id')
+            ->orderByRaw('payments_max_payment_date IS NULL')
+            ->orderByDesc('payments_max_payment_date')->orderByDesc('payments_max_id')->orderBy('client_name')->get();
 
         $contract = $bookings->sum('total_amount');
         $paid = $bookings->sum('payments_sum_amount');

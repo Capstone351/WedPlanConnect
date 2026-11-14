@@ -211,4 +211,18 @@ class OperationsTest extends TestCase
         $this->actingAs($planner)->get('/reports/daily-operations')->assertOk();
         $this->actingAs($admin)->get('/reports/client-payment-history/pdf')->assertOk()->assertHeader('content-type', 'application/pdf');
     }
+
+    public function test_client_payment_history_lists_the_most_recent_payment_first(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $older = Booking::factory()->create(['client_name' => 'Ana Cruz', 'status' => 'confirmed']);
+        $newer = Booking::factory()->create(['client_name' => 'Zoe Lim', 'status' => 'confirmed']);
+        Booking::factory()->create(['client_name' => 'Ben Uy', 'status' => 'confirmed']);
+        Payment::create(['booking_id' => $older->id, 'amount' => 1000, 'payment_date' => today()->subDays(5), 'method' => 'cash']);
+        Payment::create(['booking_id' => $newer->id, 'amount' => 1000, 'payment_date' => today(), 'method' => 'cash']);
+
+        $rows = app(ReportService::class)->build('client-payment-history', $admin, null, null)['rows'];
+
+        $this->assertSame(['Zoe Lim', 'Ana Cruz', 'Ben Uy'], array_column($rows, 0));
+    }
 }
