@@ -19,7 +19,7 @@ class BookingFactory extends Factory
             'client_name' => fake()->firstName().' & '.fake()->firstName().' '.fake()->lastName(),
             'contact_number' => '+63917'.fake()->numerify('#######'),
             'event_date' => fake()->dateTimeBetween('+1 month', '+10 months')->format('Y-m-d'),
-            'venue' => fake()->randomElement(['Casa Gorordo Museum', 'Marco Polo Plaza Cebu', 'Shangri-La Mactan', 'Radisson Blu Cebu', 'Sacred Heart Parish']),
+            'venue' => fake()->randomElement(['Casa Gorordo Museum', 'Marco Polo Plaza Cebu', 'Shangri-La Mactan', 'Radisson Blu Cebu', 'Casino Español de Cebu']),
             'package' => fake()->randomElement(['Classic Elegance', 'Garden Romance', 'Grand Ballroom']),
             'total_amount' => fake()->randomElement([85000, 120000, 150000, 220000]),
             'status' => 'pending',

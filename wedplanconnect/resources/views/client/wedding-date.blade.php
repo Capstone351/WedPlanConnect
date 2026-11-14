@@ -55,9 +55,9 @@
                         </div>
                     @endif
                     <div class="sm:col-span-2">
-                        <label for="wedding_venue" class="label">Preferred venue <span class="font-normal text-stone-400">(optional)</span></label>
+                        <label for="wedding_venue" class="label">Preferred reception venue <span class="font-normal text-stone-400">(optional)</span></label>
                         <input id="wedding_venue" name="wedding_venue" maxlength="200" list="cebu-venues" autocomplete="off" value="{{ old('wedding_venue', $user->wedding_venue) }}"
-                            placeholder="Start typing for Cebu venues, or leave blank if you're still deciding" class="input" data-venue-input>
+                            placeholder="Where the reception will be held. Start typing for Cebu venues, or leave blank if you're still deciding" class="input" data-venue-input>
                         <x-place-options id="cebu-venues" />
                         <p class="hint">Your planner checks the date and venue together to avoid double-bookings.</p>
                     </div>
@@ -115,9 +115,9 @@
                                 </div>
                             </div>
                             <div>
-                                <label for="venue" class="label">Wedding venue <span class="font-normal text-stone-400">(optional)</span></label>
+                                <label for="venue" class="label">Reception venue <span class="font-normal text-stone-400">(optional)</span></label>
                                 <input id="venue" name="venue" maxlength="200" list="cebu-venues" autocomplete="off" value="{{ old('venue', $user->wedding_venue) }}"
-                                    placeholder="Start typing for Cebu venues, or leave blank if you're still deciding" @class(['input', 'input-error' => $errors->has('venue')])>
+                                    placeholder="Where the reception will be held. Start typing for Cebu venues, or leave blank if you're still deciding" @class(['input', 'input-error' => $errors->has('venue')])>
                                 @error('venue')<p class="error-text">{{ $message }}</p>@enderror
                             </div>
                         </div>
