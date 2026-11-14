@@ -49,6 +49,38 @@ class TaskAssignmentTest extends TestCase
         $this->assertSame($planner->id, $task->fresh()->assigned_to);
     }
 
+    public function test_the_list_shows_open_tasks_soonest_due_first(): void
+    {
+        $planner = User::factory()->planner()->create();
+        $make = fn (string $title, $due, string $status = 'pending') => Task::create(['assigned_to' => $planner->id, 'title' => $title, 'due_date' => $due, 'status' => $status]);
+        $make('Ongoing but months away', today()->addMonths(5), 'ongoing');
+        $make('Overdue pending', today()->subDay());
+        $make('Due tomorrow', today()->addDay());
+        $make('Already finished', today()->subWeek(), 'completed');
+
+        $this->actingAs($planner)->get('/tasks')->assertOk()
+            ->assertSeeInOrder(['Overdue pending', 'Due tomorrow', 'Ongoing but months away'])
+            ->assertDontSee('Already finished');
+
+        $this->actingAs($planner)->get('/tasks?completed=1')->assertOk()->assertSeeInOrder(['Overdue pending', 'Ongoing but months away', 'Already finished']);
+        $this->actingAs($planner)->get('/tasks?status=completed')->assertOk()->assertSee('Already finished')->assertDontSee('Due tomorrow');
+    }
+
+    public function test_a_wedding_task_cannot_be_due_after_the_wedding(): void
+    {
+        $booking = Booking::factory()->create(['event_date' => today()->addMonth()]);
+        $planner = $booking->planner;
+
+        $this->actingAs($planner)->post('/tasks', $this->taskData(['booking_id' => $booking->id, 'due_date' => today()->addMonths(2)->toDateString()]))
+            ->assertSessionHasErrors('due_date');
+        $this->actingAs($planner)->post('/tasks', $this->taskData(['booking_id' => $booking->id, 'due_date' => today()->addMonth()->toDateString()]))
+            ->assertSessionHasNoErrors();
+
+        $task = Task::sole();
+        $this->actingAs($planner)->put("/tasks/{$task->id}", $this->taskData(['booking_id' => $booking->id, 'due_date' => today()->subDay()->toDateString()]))
+            ->assertSessionHasErrors('due_date');
+    }
+
     public function test_changing_a_weddings_planner_moves_its_open_tasks(): void
     {
         $booking = Booking::factory()->create();
