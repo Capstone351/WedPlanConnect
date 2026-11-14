@@ -27,36 +27,38 @@ class PackageTasksTest extends TestCase
         $this->actingAs($planner)->patch("/bookings/{$booking->id}/confirm")->assertSessionHasNoErrors();
         $this->assertSame(count(Booking::packageTasks('Package A')), $booking->tasks()->count());
 
-        $cake = $booking->tasks()->where('title', 'Cake')->sole();
+        $cake = $booking->tasks()->where('title', 'Order the wedding cake')->sole();
         $this->assertSame($planner->id, $cake->assigned_to);
         $this->assertSame(today()->addYear()->subDays(45)->toDateString(), $cake->due_date->toDateString());
-        $this->assertTrue($booking->tasks()->where('title', '4 On-the-Day Coordinators')->exists());
-        $this->assertTrue($booking->tasks()->where('title', 'Freebie: Bridesmaids Robe for Dress-up/Makeup')->exists());
+        $this->assertStringStartsWith('Package A inclusion: Cake. Confirm the package', $cake->description);
+        $this->assertSame(0, $booking->tasks()->where('description', 'like', '%Arrange and confirm it before the wedding%')->count());
+        $this->assertTrue($booking->tasks()->where('title', 'Brief the 4 on-the-day coordinators')->exists());
+        $this->assertTrue($booking->tasks()->where('title', "Prepare the bridesmaids' robes")->exists());
 
-        $this->actingAs($planner)->get('/tasks')->assertOk()->assertSee('Church Decoration');
-        $this->actingAs($client)->get('/my')->assertOk()->assertSee('Photo/Video (w/ Pre-nup)');
+        $this->actingAs($planner)->get('/tasks')->assertOk()->assertSee('Plan the church decoration');
+        $this->actingAs($client)->get('/my')->assertOk()->assertSee('Book the photo and video team');
     }
 
     public function test_changing_the_package_updates_untouched_tasks_and_keeps_worked_on_ones(): void
     {
         $booking = Booking::factory()->confirmed()->create(['package' => 'Package A', 'event_date' => today()->addYear()]);
-        $booking->tasks()->where('title', 'Cake')->update(['status' => 'completed']);
+        $booking->tasks()->where('title', 'Order the wedding cake')->update(['status' => 'completed']);
         $own = Task::create(['booking_id' => $booking->id, 'assigned_to' => $booking->planner_id, 'title' => 'Food tasting', 'due_date' => today()->addMonth()]);
 
         $booking->update(['package' => 'Package C']);
 
         $titles = $booking->tasks()->pluck('title');
-        $this->assertContains('2 On-the-Day Coordinators', $titles);
-        $this->assertNotContains('4 On-the-Day Coordinators', $titles);
-        $this->assertNotContains('Freebie: Bridesmaids Robe for Dress-up/Makeup', $titles);
+        $this->assertContains('Brief the 2 on-the-day coordinators', $titles);
+        $this->assertNotContains('Brief the 4 on-the-day coordinators', $titles);
+        $this->assertNotContains("Prepare the bridesmaids' robes", $titles);
         $this->assertContains('Food tasting', $titles);
-        $this->assertSame(1, $booking->tasks()->where('title', 'Cake')->count());
-        $this->assertSame('completed', $booking->tasks()->where('title', 'Cake')->sole()->status);
+        $this->assertSame(1, $booking->tasks()->where('title', 'Order the wedding cake')->count());
+        $this->assertSame('completed', $booking->tasks()->where('title', 'Order the wedding cake')->sole()->status);
         $this->assertModelExists($own);
 
         // A new wedding date moves the untouched due dates with it.
         $booking->update(['event_date' => today()->addYear()->addMonth()]);
-        $this->assertSame(today()->addYear()->addMonth()->subDays(180)->toDateString(), $booking->tasks()->where('title', 'Reception Area')->sole()->due_date->toDateString());
+        $this->assertSame(today()->addYear()->addMonth()->subDays(180)->toDateString(), $booking->tasks()->where('title', 'Book the reception venue')->sole()->due_date->toDateString());
     }
 
     public function test_a_close_wedding_date_never_gets_due_dates_in_the_past(): void
@@ -73,11 +75,25 @@ class PackageTasksTest extends TestCase
         $booking = Booking::factory()->confirmed()->create(['package' => 'Package A', 'event_date' => today()->addYear()]);
         $priority = $booking->tasks()->pluck('priority', 'title');
 
-        $this->assertSame('high', $priority['Reception Area']);
-        $this->assertSame('high', $priority['4 On-the-Day Coordinators']);
-        $this->assertSame('medium', $priority['Cake']);
-        $this->assertSame('low', $priority['Confetti/Poppers']);
-        $this->assertSame('low', $priority['Freebie: Wine for Toasting']);
+        $this->assertSame('high', $priority['Book the reception venue']);
+        $this->assertSame('high', $priority['Brief the 4 on-the-day coordinators']);
+        $this->assertSame('medium', $priority['Order the wedding cake']);
+        $this->assertSame('low', $priority['Prepare the confetti and poppers']);
+        $this->assertSame('low', $priority['Prepare the wine for the toast']);
+    }
+
+    public function test_existing_tasks_with_bare_inclusion_titles_are_reworded(): void
+    {
+        $booking = Booking::factory()->create(['package' => 'Package B']);
+        $cake = Task::create(['booking_id' => $booking->id, 'assigned_to' => $booking->planner_id, 'title' => 'Cake', 'description' => 'Included in Package B. Arrange and confirm it before the wedding.', 'due_date' => today()->addMonth(), 'status' => 'completed']);
+        $coordinators = Task::create(['booking_id' => $booking->id, 'assigned_to' => $booking->planner_id, 'title' => '3 On-the-Day Coordinators', 'due_date' => today()->addMonth()]);
+
+        (require database_path('migrations/2026_11_14_114143_reword_package_tasks_as_actions.php'))->up();
+
+        $this->assertSame('Order the wedding cake', $cake->fresh()->title);
+        $this->assertSame('completed', $cake->fresh()->status);
+        $this->assertStringStartsWith('Package B inclusion: Cake.', $cake->fresh()->description);
+        $this->assertSame('Brief the 3 on-the-day coordinators', $coordinators->fresh()->title);
     }
 
     public function test_custom_packages_get_no_package_tasks(): void

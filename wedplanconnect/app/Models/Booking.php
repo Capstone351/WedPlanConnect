@@ -53,9 +53,9 @@ class Booking extends Model
     }
 
     /**
-     * Preparation tasks a package brings: its inclusions, coordinators, and freebies, each with its lead time.
+     * Preparation tasks a package brings: its inclusions, coordinators, and freebies, each worded as an action.
      *
-     * @return array<string, int> task title => days before the wedding
+     * @return array<string, array{inclusion: string, days: int, priority: string, details: string}> task title => task details
      */
     public static function packageTasks(?string $name): array
     {
@@ -65,24 +65,29 @@ class Booking extends Model
             return [];
         }
 
-        $tasks = config('wedplan.package_inclusions');
-        $tasks[$package['coordinators'].' On-the-Day Coordinators'] = config('wedplan.package_coordinators_lead_days');
+        $tasks = [];
+
+        foreach (config('wedplan.package_inclusions') as $inclusion => $spec) {
+            $tasks[$spec['task']] = ['inclusion' => $inclusion, 'days' => $spec['days'], 'priority' => $spec['priority'], 'details' => $spec['details']];
+        }
+
+        $coordinators = config('wedplan.package_coordinators_task');
+        $tasks[str_replace(':count', $package['coordinators'], $coordinators['task'])] = [
+            'inclusion' => $package['coordinators'].' On-the-Day Coordinators', 'days' => $coordinators['days'], 'priority' => $coordinators['priority'], 'details' => $coordinators['details'],
+        ];
 
         foreach ($package['freebies'] as $freebie) {
-            $tasks['Freebie: '.$freebie] = config('wedplan.package_freebies_lead_days');
+            $spec = config('wedplan.package_freebies')[$freebie] ?? ['task' => "Prepare the freebie: {$freebie}", 'details' => 'Free with the package. Have it ready before the wedding.'];
+            $tasks[$spec['task']] = ['inclusion' => "Freebie: {$freebie}", 'days' => config('wedplan.package_freebies_days'), 'priority' => 'low', 'details' => $spec['details']];
         }
 
         return $tasks;
     }
 
-    /** Priority by how much the inclusion matters to the wedding, not by how early it is due. */
-    public static function packageTaskPriority(string $title): string
+    /** Task description: which inclusion it comes from, then what has to be done. */
+    public static function packageTaskDescription(string $package, array $spec): string
     {
-        return match (true) {
-            in_array($title, config('wedplan.package_high_priority'), true), str_ends_with($title, 'On-the-Day Coordinators') => 'high',
-            in_array($title, config('wedplan.package_low_priority'), true), str_starts_with($title, 'Freebie: ') => 'low',
-            default => 'medium',
-        };
+        return "{$package} inclusion: {$spec['inclusion']}. {$spec['details']}";
     }
 
     /** Every task title any package can create, so package tasks can be told apart from the planner's own. */
@@ -136,11 +141,16 @@ class Booking extends Model
             if (! array_key_exists($title, $wanted)) {
                 $task->delete();
             } else {
-                $task->update(['due_date' => $this->packageTaskDueDate($wanted[$title]), 'assigned_to' => $this->planner_id, 'priority' => self::packageTaskPriority($title)]);
+                $task->update([
+                    'description' => self::packageTaskDescription($this->package, $wanted[$title]),
+                    'due_date' => $this->packageTaskDueDate($wanted[$title]['days']),
+                    'assigned_to' => $this->planner_id,
+                    'priority' => $wanted[$title]['priority'],
+                ]);
             }
         }
 
-        foreach ($wanted as $title => $leadDays) {
+        foreach ($wanted as $title => $spec) {
             if ($existing->has($title)) {
                 continue;
             }
@@ -148,9 +158,9 @@ class Booking extends Model
             $this->tasks()->create([
                 'assigned_to' => $this->planner_id,
                 'title' => $title,
-                'description' => "Included in {$this->package}. Arrange and confirm it before the wedding.",
-                'due_date' => $this->packageTaskDueDate($leadDays),
-                'priority' => self::packageTaskPriority($title),
+                'description' => self::packageTaskDescription($this->package, $spec),
+                'due_date' => $this->packageTaskDueDate($spec['days']),
+                'priority' => $spec['priority'],
                 'status' => 'pending',
             ]);
         }
