@@ -22,9 +22,9 @@ class TaskController extends Controller
         $tasks = (clone $base)
             ->with('booking')
             ->when($request->filled('booking_id'), fn ($q) => $q->where('booking_id', $request->integer('booking_id')))
-            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
-            // A to-do list shows what is left; finished tasks only when asked for.
-            ->when(! $request->filled('status') && ! $request->boolean('completed'), fn ($q) => $q->open())
+            // A to-do list shows what is left by default; "all" brings back finished tasks.
+            ->when(in_array($request->input('status'), Task::STATUSES, true), fn ($q) => $q->where('status', $request->input('status')))
+            ->when(! $request->filled('status'), fn ($q) => $q->open())
             ->when($request->filled('priority'), fn ($q) => $q->where('priority', $request->string('priority')))
             ->when($request->boolean('overdue'), fn ($q) => $q->overdue())
             // Soonest due first (so overdue work is on top), finished tasks last, importance breaks ties.

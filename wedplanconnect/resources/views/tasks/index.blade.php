@@ -24,8 +24,9 @@
             <div>
                 <label class="label" for="status">Status</label>
                 <select id="status" name="status" class="input" data-autosubmit>
-                    <option value="">Any</option>
+                    <option value="">To do</option>
                     @foreach (\App\Models\Task::STATUSES as $s)<option value="{{ $s }}" @selected(request('status') === $s)>{{ ucfirst($s) }}</option>@endforeach
+                    <option value="all" @selected(request('status') === 'all')>All</option>
                 </select>
             </div>
             <div>
@@ -35,9 +36,7 @@
                     @foreach (\App\Models\Task::PRIORITIES as $p)<option value="{{ $p }}" @selected(request('priority') === $p)>{{ ucfirst($p) }}</option>@endforeach
                 </select>
             </div>
-            <label class="flex items-center gap-2 pb-2 text-sm"><input type="checkbox" name="overdue" value="1" data-autosubmit @checked(request('overdue'))> Overdue only</label>
-            <label class="flex items-center gap-2 pb-2 text-sm"><input type="checkbox" name="completed" value="1" data-autosubmit @checked(request('completed'))> Show completed</label>
-        </form>
+            <label class="flex items-center gap-2 pb-2 text-sm"><input type="checkbox" name="overdue" value="1" data-autosubmit @checked(request('overdue'))> Overdue only</label>        </form>
         <div class="overflow-x-auto">
             <table class="table">
                 <thead><tr><th>Task</th><th>Project</th><th>Due</th><th>Priority</th><th>Status</th><th class="text-right">Actions</th></tr></thead>
@@ -76,7 +75,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="6" class="py-10 text-center text-stone-500">{{ request()->hasAny(['booking_id', 'status', 'priority', 'overdue', 'completed']) ? 'No tasks match your filters.' : 'Nothing left to do. Tick "Show completed" to see finished tasks.' }}</td></tr>
+                        <tr><td colspan="6" class="py-10 text-center text-stone-500">{{ request()->hasAny(['booking_id', 'status', 'priority', 'overdue']) ? 'No tasks match your filters.' : 'Nothing left to do. Choose "Completed" or "All" under Status to see finished tasks.' }}</td></tr>
                     @endforelse
                 </tbody>
             </table>
