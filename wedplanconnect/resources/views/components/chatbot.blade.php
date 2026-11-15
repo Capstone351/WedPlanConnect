@@ -1,5 +1,5 @@
 {{-- WedBot: AI chatbot / FAQ assistant (UC-11) --}}
-<div id="wedbot" class="fixed right-4 bottom-4 z-40 flex flex-col items-end gap-3 print:hidden"
+<div id="wedbot" class="fixed right-4 bottom-4 z-30 flex flex-col items-end gap-3 print:hidden"
     data-ask-url="{{ route('chatbot.ask') }}" data-faqs-url="{{ route('chatbot.faqs') }}">
     <div data-bot-panel class="hidden w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-xl">
         <div class="flex items-center justify-between border-b border-gold-400/40 bg-gradient-to-r from-brand-800 to-brand-950 px-4 py-3 text-white">
@@ -25,7 +25,8 @@
             <button class="btn-primary px-3" aria-label="Send">➤</button>
         </form>
     </div>
-    <button type="button" data-bot-open class="flex items-center gap-2 rounded-full bg-gradient-to-b from-brand-700 to-brand-900 px-4 py-3 text-sm font-medium text-gold-100 shadow-lg ring-1 ring-gold-400/60 hover:from-brand-800 hover:to-brand-950">
-        <x-icon name="chat" class="size-5" /> Ask WedBot
+    {{-- On phones only the round icon shows, so it covers less of the page. --}}
+    <button type="button" data-bot-open aria-label="Ask WedBot" class="flex items-center gap-2 rounded-full bg-gradient-to-b from-brand-700 to-brand-900 p-3.5 text-sm font-medium text-gold-100 shadow-lg ring-1 ring-gold-400/60 hover:from-brand-800 hover:to-brand-950 sm:px-4 sm:py-3">
+        <x-icon name="chat" class="size-5" /> <span class="hidden sm:inline">Ask WedBot</span>
     </button>
 </div>

@@ -70,6 +70,7 @@
     <aside id="sidebar" class="lattice fixed inset-y-0 left-0 z-40 flex w-64 -translate-x-full flex-col bg-brand-950 text-white transition-transform lg:translate-x-0 print:hidden">
         <div class="pointer-events-none absolute inset-0 bg-gradient-to-b from-brand-800/90 via-brand-900/95 to-brand-950"></div>
         <div class="pointer-events-none absolute inset-y-0 right-0 w-px bg-gradient-to-b from-gold-400/0 via-gold-400/50 to-gold-400/0"></div>
+        <button type="button" data-sidebar-toggle class="absolute top-3 right-3 z-10 grid size-10 place-items-center rounded-lg text-xl text-gold-200 hover:bg-white/10 lg:hidden" aria-label="Close menu">✕</button>
         <a href="{{ route('dashboard') }}" class="relative flex flex-col items-center px-6 pt-7 pb-5 text-center">
             <span class="grid size-12 place-items-center rounded-full bg-gradient-to-b from-gold-200 to-gold-500 text-brand-900 shadow-[0_6px_18px_-6px_rgba(207,167,90,0.8)] ring-4 ring-gold-400/15">
                 <x-icon name="heart" class="size-6" />
