@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Booking;
 use App\Models\Meeting;
 use App\Notifications\MeetingAnswered;
 use Illuminate\Http\RedirectResponse;
@@ -36,6 +37,17 @@ class MeetingController extends Controller
 
         if (! $meeting->isOpen() || $meeting->scheduled_at->isPast()) {
             return back()->withErrors(['meeting' => 'This meeting can no longer be changed.']);
+        }
+
+        // Check the slot again: a wedding or another meeting may have been booked since the couple asked.
+        if ($data['status'] === 'confirmed') {
+            if (Booking::plannerIdsBookedOn($meeting->scheduled_at)->contains($meeting->planner_id)) {
+                return back()->withErrors(['meeting' => 'There is a wedding on '.$meeting->scheduled_at->format('F j, Y').' for this planner. Decline the meeting and suggest another day.']);
+            }
+
+            if ($clash = Meeting::findClash($meeting->planner_id, $meeting->scheduled_at, $meeting->id)) {
+                return back()->withErrors(['meeting' => 'This overlaps another meeting on '.$clash->when().'. Decline it and suggest another time.']);
+            }
         }
 
         $meeting->update($data + ['responded_at' => now()]);

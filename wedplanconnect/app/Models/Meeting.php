@@ -68,10 +68,20 @@ class Meeting extends Model
     /** An open meeting of the planner that overlaps the given time. */
     public static function findClash(int $plannerId, CarbonInterface $at, ?int $ignoreId = null): ?self
     {
-        return self::open()->where('planner_id', $plannerId)
-            ->whereBetween('scheduled_at', [$at->copy()->subMinutes(self::SLOT_MINUTES - 1), $at->copy()->addMinutes(self::SLOT_MINUTES - 1)])
-            ->when($ignoreId, fn ($q) => $q->whereKeyNot($ignoreId))
-            ->first();
+        return self::open()->where('planner_id', $plannerId)->overlapping($at, $ignoreId)->first();
+    }
+
+    /** An open meeting of the couple that overlaps the given time, so they can't be in two meetings at once. */
+    public static function findClientClash(int $clientId, CarbonInterface $at, ?int $ignoreId = null): ?self
+    {
+        return self::open()->where('client_id', $clientId)->overlapping($at, $ignoreId)->first();
+    }
+
+    /** Meetings that start less than one slot before or after the given time. */
+    public function scopeOverlapping(Builder $query, CarbonInterface $at, ?int $ignoreId = null): Builder
+    {
+        return $query->whereBetween('scheduled_at', [$at->copy()->subMinutes(self::SLOT_MINUTES - 1), $at->copy()->addMinutes(self::SLOT_MINUTES - 1)])
+            ->when($ignoreId, fn ($q) => $q->whereKeyNot($ignoreId));
     }
 
     public function isOpen(): bool

@@ -65,7 +65,9 @@ class MeetingController extends Controller
             // Lock the couple's row so a double click can't send two requests.
             $user = User::lockForUpdate()->findOrFail($request->user()->id);
             $planner = $this->plannerFor($user);
-            $this->guardSlot($planner, $at);
+            // Lock the planner's row too, so two couples asking for the same slot are checked one at a time.
+            $planner = $planner ? User::withTrashed()->lockForUpdate()->find($planner->id) : null;
+            $this->guardSlot($planner, $at, $user);
 
             return Meeting::create([
                 'client_id' => $user->id,
@@ -106,7 +108,7 @@ class MeetingController extends Controller
         return $planner && ! $planner->trashed() ? $planner : null;
     }
 
-    private function guardSlot(?User $planner, Carbon $at): void
+    private function guardSlot(?User $planner, Carbon $at, User $client): void
     {
         $fail = fn (string $message) => throw ValidationException::withMessages(['time' => $message]);
 
@@ -124,6 +126,10 @@ class MeetingController extends Controller
 
         if (Meeting::findClash($planner->id, $at)) {
             $fail("{$planner->name} already has a meeting around ".$at->format('g:i A').' that day. Please pick another time.');
+        }
+
+        if ($own = Meeting::findClientClash($client->id, $at)) {
+            $fail('You already asked for a meeting on '.$own->when().'. Please pick another time, or cancel that one first.');
         }
     }
 }
