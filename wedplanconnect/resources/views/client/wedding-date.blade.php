@@ -7,13 +7,20 @@
                 <div class="font-display text-4xl font-semibold text-white sm:text-5xl">{{ $booking->event_date->format('l, F j, Y') }}</div>
                 <x-ornament class="mx-auto mt-2 w-48" :light="true" />
                 <p class="mt-2 text-brand-100/85">{{ $booking->venueLabel() }} · {{ $booking->packageLabel() }} · {{ max(0, $booking->daysToGo()) }} days to go</p>
-                @if ($booking->status === 'pending' && $booking->missingBeforeConfirm())
-                    <p class="mt-4 max-w-md text-sm text-brand-100/70">
-                        Meet <strong class="text-gold-200">{{ $booking->planner->name }}</strong> to agree on the {{ \Illuminate\Support\Arr::join($booking->missingBeforeConfirm(), ', ', ' and ') }}. They'll confirm your booking after that.
-                    </p>
-                    <a href="{{ route('client.meetings', ['mode' => 'in_person', 'agenda' => \App\Http\Controllers\Client\PackageController::MEETING_AGENDA]) }}" class="btn-gold mt-3">Book a meeting</a>
-                @elseif ($booking->status === 'pending')
-                    <p class="mt-4 max-w-md text-sm text-brand-100/70">Waiting for <strong class="text-gold-200">{{ $booking->planner->name }}</strong> to confirm your booking.</p>
+                @if ($booking->status === 'pending')
+                    @php $agree = $booking->missingBeforeConfirm() ? ' agree on the '.\Illuminate\Support\Arr::join($booking->missingBeforeConfirm(), ', ', ' and ').' and' : ''; @endphp
+                    @if ($nextMeeting)
+                        <p class="mt-4 max-w-md text-sm text-brand-100/70">
+                            Your meeting with <strong class="text-gold-200">{{ $booking->planner->name }}</strong> is on <strong class="text-gold-200">{{ $nextMeeting->when() }}</strong>{{ $nextMeeting->status === 'requested' ? ' (waiting for their reply)' : '' }}.
+                            Bring your down payment. You'll{{ $agree }} pay it there, and your booking is confirmed after that.
+                        </p>
+                        <a href="{{ route('client.meetings') }}" class="btn-gold mt-3">View meeting</a>
+                    @else
+                        <p class="mt-4 max-w-md text-sm text-brand-100/70">
+                            Next, book an in-person meeting with <strong class="text-gold-200">{{ $booking->planner->name }}</strong> to{{ $agree }} pay your down payment. They'll confirm your booking after that.
+                        </p>
+                        <a href="{{ route('client.meetings', ['mode' => 'in_person', 'agenda' => $booking->meetingAgenda()]) }}" class="btn-gold mt-3">Book a meeting</a>
+                    @endif
                 @endif
                 <p class="mt-4 max-w-md text-sm text-brand-100/70">Need a different date? Please contact your planner, <strong class="text-gold-200">{{ $booking->planner->name }}</strong>, so they can check availability.</p>
             </div>
@@ -99,7 +106,8 @@
                     @else
                         <p class="text-sm text-stone-600">
                             This sends <strong>{{ $user->wedding_date->format('l, F j, Y') }}</strong> to <strong>{{ $user->preferredPlanner->name }}</strong>'s bookings.
-                            Still deciding on the package or venue? You can leave them for now and agree on them when you meet your planner.
+                            After sending, you'll book an in-person meeting with them, where you pay the down payment.
+                            Still deciding on the package or venue? You can leave them for now and agree on them at that meeting.
                         </p>
                         <div class="grid gap-5 sm:grid-cols-2">
                             <div>

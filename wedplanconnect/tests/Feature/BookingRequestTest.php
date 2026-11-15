@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Booking;
+use App\Models\Meeting;
 use App\Models\User;
 use App\Notifications\BookingRequested;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -35,7 +36,17 @@ class BookingRequestTest extends TestCase
     {
         $this->actingAs($this->client)->get('/my/wedding-date')->assertOk()->assertSee('Send booking to Maria Clara Uy')->assertSee('Package B');
 
-        $this->send()->assertSessionHasNoErrors()->assertRedirect('/my/wedding-date');
+        // Even with a package chosen, the couple is sent to book a meeting: the down payment is made there.
+        $agenda = 'Go over Package B and pay the down payment.';
+        $this->send()->assertSessionHasNoErrors()
+            ->assertRedirect(route('client.meetings', ['mode' => 'in_person', 'agenda' => $agenda]))
+            ->assertSessionHas('status', fn ($s) => str_contains($s, 'Next, book an in-person meeting with them to pay your down payment.'));
+        $this->actingAs($this->client)->get(route('client.meetings', ['agenda' => $agenda]))->assertOk()
+            ->assertSee('Your down payment is made at this meeting.')->assertSee($agenda);
+        $this->actingAs($this->client)->get('/my/wedding-date')->assertOk()->assertSee('Book a meeting');
+
+        Meeting::factory()->create(['client_id' => $this->client->id, 'planner_id' => $this->planner->id, 'scheduled_at' => now()->addWeek(), 'status' => 'requested']);
+        $this->actingAs($this->client)->get('/my/wedding-date')->assertOk()->assertSee('Bring your down payment.')->assertDontSee('Book a meeting');
 
         $booking = Booking::sole();
         $this->assertSame($this->planner->id, $booking->planner_id);
@@ -78,7 +89,7 @@ class BookingRequestTest extends TestCase
         $this->actingAs($this->client)->get('/my/wedding-date')->assertOk()->assertSee('To be discussed with your planner');
 
         $this->actingAs($this->client)->post('/my/booking-request', ['venue' => ''])
-            ->assertSessionHasNoErrors()->assertSessionHas('status', fn ($s) => str_contains($s, 'Book a meeting with them to agree on the venue, package and price.'));
+            ->assertSessionHasNoErrors()->assertSessionHas('status', fn ($s) => str_contains($s, 'book an in-person meeting with them to agree on the venue, package and price and pay your down payment.'));
 
         $booking = Booking::sole();
         $this->assertSame([null, null, 0.0], [$booking->venue, $booking->package, (float) $booking->total_amount]);

@@ -1,5 +1,11 @@
 <x-layouts.app title="Meetings" heading="Meet Your Planner"
     subheading="Pick a date and time to meet your Wedding Planner. They'll confirm it or suggest another time.">
+    @if ($pendingBooking)
+        <div class="mb-6 rounded-xl border border-gold-200 bg-gold-50 px-5 py-4 text-sm text-stone-700">
+            <strong>Your down payment is made at this meeting.</strong>
+            Meet your planner in person to {{ $pendingBooking->missingBeforeConfirm() ? 'agree on the '.\Illuminate\Support\Arr::join($pendingBooking->missingBeforeConfirm(), ', ', ' and ').' and ' : 'go over '.$pendingBooking->package.' and ' }}pay the down payment. Your booking for {{ $pendingBooking->event_date->format('F j, Y') }} is confirmed after that.
+        </div>
+    @endif
     <div class="grid gap-6 lg:grid-cols-3 lg:items-start">
         <div class="card lg:col-span-1">
             <div class="card-header"><h2 class="card-title">Ask for a meeting</h2></div>

@@ -16,6 +16,7 @@ use Illuminate\Validation\ValidationException;
  * Couples send their wedding details to their chosen planner as a pending booking,
  * so the planner no longer has to create it by hand. The price comes from their chosen package;
  * the package and venue may be left for a meeting, and the planner fills them in before confirming.
+ * Either way the couple then books an in-person meeting, where the down payment is made.
  */
 class BookingRequestController extends Controller
 {
@@ -55,10 +56,11 @@ class BookingRequestController extends Controller
 
         $booking->planner->notify(new BookingRequested($booking));
 
-        return redirect()->route('client.wedding-date')
-            ->with('status', "Your booking was sent to {$booking->planner->name}.".($booking->missingBeforeConfirm()
-                ? ' Book a meeting with them to agree on the '.Arr::join($booking->missingBeforeConfirm(), ', ', ' and ').'.'
-                : " They'll confirm it soon."));
+        // Every couple meets the planner next: the down payment is made at the meeting, then the booking is confirmed.
+        return redirect()->route('client.meetings', ['mode' => 'in_person', 'agenda' => $booking->meetingAgenda()])
+            ->with('status', "Your booking was sent to {$booking->planner->name}. Next, book an in-person meeting with them"
+                .($booking->missingBeforeConfirm() ? ' to agree on the '.Arr::join($booking->missingBeforeConfirm(), ', ', ' and ').' and' : ' to')
+                .' pay your down payment. They confirm your booking after that.');
     }
 
     /** Everything the planner needs must be filled in, and the slot must still be free. */
