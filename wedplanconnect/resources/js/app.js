@@ -497,3 +497,16 @@ if (bot) {
         }
     });
 }
+
+// On phones, tables are shown as stacked cards. Each cell is labelled with its column heading
+// so "₱140,000.00" reads as "Total ₱140,000.00". Cells that already have a label are left alone.
+document.querySelectorAll('table.table').forEach((table) => {
+    const headings = [...table.querySelectorAll('thead th')].map((th) => th.textContent.trim());
+    table.querySelectorAll('tbody tr').forEach((row) => {
+        [...row.children].forEach((cell, i) => {
+            if (!cell.hasAttribute('data-label') && !cell.hasAttribute('colspan') && headings[i]) {
+                cell.setAttribute('data-label', headings[i]);
+            }
+        });
+    });
+});
