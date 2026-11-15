@@ -8,6 +8,7 @@ use App\Models\Payment;
 use App\Models\Supplier;
 use App\Models\SupplierProduct;
 use App\Models\User;
+use App\Notifications\BookingAssigned;
 use App\Notifications\BookingChanged;
 use App\Notifications\BookingConfirmed;
 use App\Support\Network;
@@ -93,6 +94,11 @@ class BookingController extends Controller
 
             return Booking::create($data);
         }));
+
+        // The admin can create a booking for a planner; that planner needs to know it's theirs.
+        if ($booking->planner_id !== $request->user()->id) {
+            $booking->planner->notify(new BookingAssigned($booking, $request->user()->name));
+        }
 
         return redirect()->route('bookings.show', $booking)->with('status', 'Booking created. No scheduling conflicts were found.');
     }
@@ -183,6 +189,16 @@ class BookingController extends Controller
             }
 
             $booking->client->notify(new BookingChanged($booking, $changes, $reason, $request->user()->name));
+        }
+
+        // Suppliers need to know when or where to show up.
+        if ($changes->contains('field', 'event_date') || $changes->contains('field', 'venue')) {
+            $booking->notifySuppliers('Wedding details changed', "The {$booking->client_name} wedding is now on {$booking->event_date->format('F j, Y')} at {$booking->venueLabel()}."
+                .($reason ? " Reason: {$reason}" : '').' Please check that you are still available.');
+        }
+
+        if ($changes->contains('field', 'planner_id') && $booking->planner_id !== $request->user()->id) {
+            $booking->planner->notify(new BookingAssigned($booking, $request->user()->name));
         }
 
         return redirect()->route('bookings.show', $booking)->with('status', $changes->isNotEmpty() ? 'Booking updated. The couple has been notified of the changes.' : 'Booking updated.');

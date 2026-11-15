@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Booking;
 use App\Models\Supplier;
 use App\Models\User;
+use App\Notifications\BookingAssigned;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -41,6 +42,25 @@ class BookingTest extends TestCase
         $this->actingAs($this->planner)->post('/bookings', $this->payload())->assertRedirect();
 
         $this->assertDatabaseHas('bookings', ['planner_id' => $this->planner->id, 'status' => 'pending', 'venue' => 'Casa Gorordo Museum']);
+    }
+
+    public function test_planner_is_notified_when_the_admin_gives_them_a_booking(): void
+    {
+        $admin = User::factory()->admin()->create(['name' => 'FMT Admin']);
+
+        $this->actingAs($admin)->post('/bookings', $this->payload(['planner_id' => $this->planner->id]))->assertSessionHasNoErrors();
+        $booking = Booking::sole();
+        $this->assertSame(BookingAssigned::class, $this->planner->notifications()->sole()->type);
+        $this->assertStringContainsString('by FMT Admin', $this->planner->notifications()->sole()->data['body']);
+
+        // Moving it to another planner tells the new one.
+        $other = User::factory()->planner()->create();
+        $this->actingAs($admin)->put("/bookings/{$booking->id}", $this->payload(['planner_id' => $other->id]))->assertSessionHasNoErrors();
+        $this->assertSame(BookingAssigned::class, $other->notifications()->sole()->type);
+
+        // A planner creating their own booking isn't notified about it.
+        $this->actingAs($this->planner)->post('/bookings', $this->payload(['event_date' => now()->addMonths(4)->toDateString()]))->assertSessionHasNoErrors();
+        $this->assertSame(1, $this->planner->notifications()->count());
     }
 
     public function test_double_booking_same_date_and_venue_is_rejected(): void
@@ -129,7 +149,8 @@ class BookingTest extends TestCase
 
         $this->actingAs($this->planner)->post("/bookings/{$booking->id}/suppliers", ['supplier_ids' => [$supplier->id]]);
         $assignment = $booking->bookingSuppliers()->first();
-        $this->assertSame('pending', $assignment->status);
+        // Assigning sends the supplier their order, so they're marked as contacted.
+        $this->assertSame('contacted', $assignment->status);
 
         $this->actingAs($this->planner)->patch("/bookings/{$booking->id}/suppliers/{$assignment->id}", ['status' => 'confirmed']);
         $this->assertSame('confirmed', $assignment->fresh()->status);

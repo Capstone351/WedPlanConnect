@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Notifications\BookingCancelled;
+use App\Notifications\SupplierBookingUpdated;
 use App\Support\Network;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -200,6 +201,13 @@ class Booking extends Model
         return $this->hasMany(BookingSupplier::class);
     }
 
+    /** Tells every supplier still working on this wedding (not the ones who declined) about a change. */
+    public function notifySuppliers(string $title, string $message): void
+    {
+        $this->bookingSuppliers()->with('supplier.user')->where('status', '!=', 'unavailable')->get()
+            ->each(fn (BookingSupplier $assignment) => $assignment->supplier->sendNotification(new SupplierBookingUpdated($this, $title, $message)));
+    }
+
     public function suppliers(): BelongsToMany
     {
         return $this->belongsToMany(Supplier::class, 'booking_suppliers')
@@ -304,6 +312,7 @@ class Booking extends Model
         $this->recordChanges($before, $reason, $by);
 
         $this->client?->notify(new BookingCancelled($this, $reason));
+        $this->notifySuppliers('Wedding cancelled', "The {$this->client_name} wedding on {$this->event_date->format('F j, Y')} was cancelled, so your services are no longer needed. Reason: {$reason}");
     }
 
     /**

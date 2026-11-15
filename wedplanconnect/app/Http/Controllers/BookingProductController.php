@@ -40,9 +40,10 @@ class BookingProductController extends Controller
             'unit_price' => $item->exists ? $item->unit_price : $product->price,
         ])->save();
 
-        $this->ensureSupplierAssigned($booking, $product->supplier_id);
+        $newlyAssigned = $this->ensureSupplierAssigned($booking, $product->supplier_id);
 
-        return back()->with('status', "{$product->name} (×{$item->quantity}) added to this wedding's set-up.".$this->reopenOrder($item));
+        return back()->with('status', "{$product->name} (×{$item->quantity}) added to this wedding's set-up."
+            .($newlyAssigned ? " {$product->supplier->name} was added to this booking. Press Send order under Suppliers when their items are complete, so they're notified." : $this->reopenOrder($item)));
     }
 
     public function update(Request $request, Booking $booking, BookingProduct $item): RedirectResponse
@@ -124,9 +125,11 @@ class BookingProductController extends Controller
         ];
     }
 
-    private function ensureSupplierAssigned(Booking $booking, int $supplierId): void
+    /** Adds the supplier to the booking if they aren't on it yet. Returns true when they were just added. */
+    private function ensureSupplierAssigned(Booking $booking, int $supplierId): bool
     {
         $assignment = BookingSupplier::withTrashed()->firstOrNew(['booking_id' => $booking->id, 'supplier_id' => $supplierId]);
+        $isNew = ! $assignment->exists || $assignment->trashed();
 
         if ($assignment->trashed()) {
             $assignment->restore();
@@ -136,5 +139,7 @@ class BookingProductController extends Controller
             $assignment->status = 'pending';
             $assignment->save();
         }
+
+        return $isNew;
     }
 }
