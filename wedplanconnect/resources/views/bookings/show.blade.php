@@ -222,7 +222,7 @@
                 </div>
                 <div class="overflow-x-auto">
                     <table class="table">
-                        <thead><tr><th>Item</th><th>Supplier</th><th>Supplier deadline</th><th class="text-right">Qty</th><th class="text-right">Subtotal</th><th></th></tr></thead>
+                        <thead><tr><th>Item and supplier</th><th>Supplier deadline</th><th class="text-right">Qty</th><th class="text-right">Subtotal</th><th></th></tr></thead>
                         <tbody>
                             @forelse ($items as $item)
                                 <tr>
@@ -235,10 +235,10 @@
                                                     <span class="badge-gold">Package · {{ $item->product->guestLabel() }}</span>
                                                 @endif
                                                 <div class="text-xs text-stone-500">{{ $item->unit_price !== null ? '₱'.number_format($item->unit_price, 2).' '.$item->product->unit : 'Price on request' }}{{ $item->notes ? ' · '.$item->notes : '' }}</div>
+                                                <div class="text-xs text-stone-600">{{ $item->product->supplier->name }} <span class="text-stone-400">· {{ $item->product->supplier->category }}</span></div>
                                             </div>
                                         </div>
                                     </td>
-                                    <td>{{ $item->product->supplier->name }}<div class="text-xs text-stone-500">{{ $item->product->supplier->category }}</div></td>
                                     <td class="whitespace-nowrap">
                                         @if ($active)
                                             <form method="POST" action="{{ route('bookings.items.update', [$booking, $item]) }}">
@@ -273,7 +273,7 @@
                                     </td>
                                 </tr>
                             @empty
-                                <tr><td colspan="6" class="py-6 text-center text-stone-500">No vendor products selected yet.</td></tr>
+                                <tr><td colspan="5" class="py-6 text-center text-stone-500">No vendor products selected yet.</td></tr>
                             @endforelse
                         </tbody>
                     </table>

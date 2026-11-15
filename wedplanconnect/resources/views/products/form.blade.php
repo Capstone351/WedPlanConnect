@@ -63,7 +63,7 @@
                     @if ($editing && $product->image_path)
                         <x-product-image :product="$product" class="size-20" />
                     @endif
-                    <input id="image" name="image" type="file" accept="image/jpeg,image/png,image/webp" class="block text-sm text-stone-600 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-brand-700 hover:file:bg-brand-100">
+                    <input id="image" name="image" type="file" accept="image/jpeg,image/png,image/webp" class="block w-full text-sm text-stone-600 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-brand-700 hover:file:bg-brand-100">
                 </div>
                 @if ($editing && $product->image_path)
                     <label class="mt-2 flex items-center gap-2 text-sm text-stone-600"><input type="checkbox" name="remove_image" value="1"> Remove current photo</label>

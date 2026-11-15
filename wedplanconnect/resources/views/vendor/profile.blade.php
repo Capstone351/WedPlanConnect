@@ -14,7 +14,7 @@
                 <div><dt class="text-stone-500">Email</dt><dd class="font-medium">{{ $supplier->email ?: '—' }}</dd></div>
                 <div><dt class="text-stone-500">Starting price</dt><dd class="font-medium">{{ $supplier->starting_price ? '₱'.number_format($supplier->starting_price, 2) : '—' }}</dd></div>
             </dl>
-            <form method="POST" action="{{ route('vendor.availability') }}" class="mt-6 flex items-center gap-3 border-t border-stone-100 pt-4">
+            <form method="POST" action="{{ route('vendor.availability') }}" class="mt-6 flex flex-wrap items-center gap-3 border-t border-stone-100 pt-4">
                 @csrf @method('PATCH')
                 <label for="availability" class="label mb-0">Update availability</label>
                 <select id="availability" name="availability" class="input w-auto">
