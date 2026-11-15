@@ -29,6 +29,7 @@ class MeetingController extends Controller
 
         return view('client.meetings', [
             'planner' => $this->plannerFor($user),
+            'pendingBooking' => $user->clientBookings()->where('status', 'pending')->first(),
             'upcoming' => $meetings->filter(fn (Meeting $m) => $m->isOpen() && $m->scheduled_at->isFuture())->sortBy('scheduled_at'),
             'past' => $meetings->reject(fn (Meeting $m) => $m->isOpen() && $m->scheduled_at->isFuture()),
             'modes' => Meeting::MODES,

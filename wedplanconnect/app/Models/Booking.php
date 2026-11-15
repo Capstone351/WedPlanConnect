@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -436,6 +437,19 @@ class Booking extends Model
             'package' => blank($this->package),
             'price' => (float) $this->total_amount <= 0,
         ]));
+    }
+
+    /**
+     * What the couple's in-person meeting with the planner is for. Every couple meets the planner
+     * before the booking is confirmed, because the down payment is made at that meeting.
+     */
+    public function meetingAgenda(): string
+    {
+        $missing = $this->missingBeforeConfirm();
+
+        return $missing
+            ? 'Agree on the '.Arr::join($missing, ', ', ' and ').', and pay the down payment.'
+            : "Go over {$this->package} and pay the down payment.";
     }
 
     public function totalPaid(): float
