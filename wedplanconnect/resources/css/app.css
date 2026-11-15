@@ -55,9 +55,10 @@
     .grid > * {
         min-width: 0;
     }
-    /* Long emails, links and names wrap instead of overflowing on phones. */
+    /* Long emails and links break only when they don't fit on a line. ("anywhere" would also let
+       flex rows squeeze a name column down to one letter wide.) */
     main {
-        overflow-wrap: anywhere;
+        overflow-wrap: break-word;
     }
 }
 
@@ -302,4 +303,10 @@
     .input {
         font-size: 1rem !important;
     }
+}
+
+/* In a wrapping row (name + badges + buttons), the stretchy column keeps a readable width,
+   so on phones it takes its own line instead of being squeezed to a sliver beside the rest. */
+.flex-wrap > .flex-1 {
+    min-width: min(12rem, 100%);
 }
