@@ -38,12 +38,12 @@ class BookingRequestTest extends TestCase
             ->assertSee('only 10% of the down payment will be returned');
 
         // Even with a package chosen, the couple is sent to book a meeting: the down payment is made there.
-        $agenda = 'Go over Package B and pay the down payment.';
+        $agenda = 'Contract signing and down payment for Package B.';
         $this->send()->assertSessionHasNoErrors()
             ->assertRedirect(route('client.meetings', ['mode' => 'in_person', 'agenda' => $agenda]))
-            ->assertSessionHas('status', fn ($s) => str_contains($s, 'Next, book an in-person meeting with them to pay your down payment.'));
+            ->assertSessionHas('status', fn ($s) => str_contains($s, 'Next, book an in-person meeting with them for the contract signing and down payment.'));
         $this->actingAs($this->client)->get(route('client.meetings', ['agenda' => $agenda]))->assertOk()
-            ->assertSee('Your down payment is made at this meeting.')->assertSee($agenda)
+            ->assertSee('You sign the contract and make your down payment at this meeting.')->assertSee($agenda)
             ->assertSee('only 10% of the down payment will be returned');
         $this->actingAs($this->client)->get('/my/wedding-date')->assertOk()->assertSee('Book a meeting');
 
@@ -91,7 +91,7 @@ class BookingRequestTest extends TestCase
         $this->actingAs($this->client)->get('/my/wedding-date')->assertOk()->assertSee('To be discussed with your planner');
 
         $this->actingAs($this->client)->post('/my/booking-request', ['venue' => ''])
-            ->assertSessionHasNoErrors()->assertSessionHas('status', fn ($s) => str_contains($s, 'book an in-person meeting with them to agree on the venue, package and price and pay your down payment.'));
+            ->assertSessionHasNoErrors()->assertSessionHas('status', fn ($s) => str_contains($s, 'book an in-person meeting with them to agree on the venue, package and price, then sign the contract and pay your down payment.'));
 
         $booking = Booking::sole();
         $this->assertSame([null, null, 0.0], [$booking->venue, $booking->package, (float) $booking->total_amount]);

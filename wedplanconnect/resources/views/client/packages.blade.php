@@ -4,6 +4,16 @@
         <div class="mb-6 rounded-xl border border-gold-300 bg-gold-50 px-4 py-3 text-sm text-stone-700">
             Your booking has been made with <strong>{{ $booking->packageLabel() }}</strong>. To change your package, please contact your planner.
         </div>
+    @elseif ($hasDate && $chosen)
+        <div class="mb-6 rounded-xl border border-gold-300 bg-gold-50 px-4 py-3 text-sm text-stone-700">
+            <div class="font-semibold">Next steps for {{ $chosen }}</div>
+            <ol class="mt-1 list-decimal space-y-0.5 pl-5">
+                <li>Send your booking to your planner.</li>
+                <li>Book an in-person meeting with your planner for the <strong>contract signing and down payment</strong>.</li>
+                <li>Your planner confirms your booking after the meeting.</li>
+            </ol>
+            <a href="{{ route('client.wedding-date') }}#send-booking" class="btn-primary btn-sm mt-3">Send my booking</a>
+        </div>
     @elseif (! $hasDate)
         <div class="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gold-300 bg-gold-50 px-4 py-3 text-sm text-stone-700">
             <span>Set your wedding date first, then choose your package.</span>

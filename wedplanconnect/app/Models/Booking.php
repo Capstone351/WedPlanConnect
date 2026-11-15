@@ -441,15 +441,21 @@ class Booking extends Model
 
     /**
      * What the couple's in-person meeting with the planner is for. Every couple meets the planner
-     * before the booking is confirmed, because the down payment is made at that meeting.
+     * before the booking is confirmed, because the contract is signed and the down payment made at that meeting.
      */
     public function meetingAgenda(): string
     {
         $missing = $this->missingBeforeConfirm();
 
         return $missing
-            ? 'Agree on the '.Arr::join($missing, ', ', ' and ').', and pay the down payment.'
-            : "Go over {$this->package} and pay the down payment.";
+            ? 'Agree on the '.Arr::join($missing, ', ', ' and ').', then sign the contract and pay the down payment.'
+            : self::packageMeetingAgenda($this->package);
+    }
+
+    /** "Contract signing and down payment for Package B." */
+    public static function packageMeetingAgenda(string $package): string
+    {
+        return "Contract signing and down payment for {$package}.";
     }
 
     /** "If the couple asks to cancel the booking, only 10% of the down payment will be returned." */

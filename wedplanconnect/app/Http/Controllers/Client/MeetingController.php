@@ -26,10 +26,15 @@ class MeetingController extends Controller
     {
         $user = $request->user();
         $meetings = Meeting::visibleTo($user)->with('planner:id,name')->orderByDesc('scheduled_at')->get();
+        $pendingBooking = $user->clientBookings()->where('status', 'pending')->first();
+        $hasBooking = $pendingBooking || $user->clientBookings()->active()->exists();
 
         return view('client.meetings', [
             'planner' => $this->plannerFor($user),
-            'pendingBooking' => $user->clientBookings()->where('status', 'pending')->first(),
+            'pendingBooking' => $pendingBooking,
+            // A couple who chose a package meets the planner to sign the contract and pay the down payment.
+            'suggestedAgenda' => $pendingBooking?->meetingAgenda()
+                ?? (! $hasBooking && $user->wedding_package ? Booking::packageMeetingAgenda($user->wedding_package) : null),
             'upcoming' => $meetings->filter(fn (Meeting $m) => $m->isOpen() && $m->scheduled_at->isFuture())->sortBy('scheduled_at'),
             'past' => $meetings->reject(fn (Meeting $m) => $m->isOpen() && $m->scheduled_at->isFuture()),
             'modes' => Meeting::MODES,
