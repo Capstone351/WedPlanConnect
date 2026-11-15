@@ -96,6 +96,38 @@ class MeetingTest extends TestCase
         $this->assertDatabaseCount('meetings', 2);
     }
 
+    public function test_a_couple_cannot_be_in_two_meetings_at_once(): void
+    {
+        $this->actingAs($this->client)->post('/my/meetings', $this->request(3, '14:30'))->assertSessionHasNoErrors();
+
+        // Their own request holds the slot, even if their planner changes.
+        $this->client->forceFill(['preferred_planner_id' => User::factory()->planner()->create()->id])->save();
+        $this->actingAs($this->client)->post('/my/meetings', $this->request(3, '15:00'))
+            ->assertSessionHasErrors(['time' => 'You already asked for a meeting on '.Meeting::sole()->when().'. Please pick another time, or cancel that one first.']);
+
+        Meeting::sole()->update(['status' => 'cancelled']);
+        $this->actingAs($this->client)->post('/my/meetings', $this->request(3, '15:00'))->assertSessionHasNoErrors();
+    }
+
+    public function test_planner_cannot_confirm_a_meeting_that_now_clashes(): void
+    {
+        $meeting = Meeting::factory()->create(['client_id' => $this->client->id, 'planner_id' => $this->planner->id, 'scheduled_at' => today()->addDays(6)->setTime(10, 0)]);
+
+        // A wedding was booked on that day after the couple asked.
+        $wedding = Booking::factory()->create(['planner_id' => $this->planner->id, 'event_date' => today()->addDays(6), 'status' => 'confirmed']);
+        $this->actingAs($this->planner)->patch("/meetings/{$meeting->id}", ['status' => 'confirmed'])->assertSessionHasErrors('meeting');
+        $this->assertSame('requested', $meeting->fresh()->status);
+
+        // Another meeting already confirmed in the same hour.
+        $wedding->update(['event_date' => today()->addDays(20)]);
+        Meeting::factory()->confirmed()->create(['planner_id' => $this->planner->id, 'scheduled_at' => today()->addDays(6)->setTime(10, 30)]);
+        $this->actingAs($this->planner)->patch("/meetings/{$meeting->id}", ['status' => 'confirmed'])->assertSessionHasErrors('meeting');
+
+        // Declining always works.
+        $this->actingAs($this->planner)->patch("/meetings/{$meeting->id}", ['status' => 'declined'])->assertSessionHasNoErrors();
+        $this->assertSame('declined', $meeting->fresh()->status);
+    }
+
     public function test_planners_only_answer_their_own_meetings(): void
     {
         $meeting = Meeting::factory()->create(['client_id' => $this->client->id, 'planner_id' => $this->planner->id]);
