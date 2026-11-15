@@ -25,13 +25,12 @@ class TaskAssignmentTest extends TestCase
         $this->actingAs($planner)->get('/tasks')->assertOk()->assertDontSee('Assigned to')->assertDontSee('name="assigned_to"', false);
     }
 
-    public function test_a_wedding_task_goes_to_that_weddings_planner_even_when_an_admin_adds_it(): void
+    public function test_a_wedding_task_goes_to_that_weddings_planner_whoever_is_picked(): void
     {
         $booking = Booking::factory()->create();
-        $admin = User::factory()->admin()->create();
         $someoneElse = User::factory()->planner()->create();
 
-        $this->actingAs($admin)->post('/tasks', $this->taskData(['booking_id' => $booking->id, 'assigned_to' => $someoneElse->id]))->assertSessionHasNoErrors();
+        $this->actingAs($booking->planner)->post('/tasks', $this->taskData(['booking_id' => $booking->id, 'assigned_to' => $someoneElse->id]))->assertSessionHasNoErrors();
 
         $this->assertSame($booking->planner_id, Task::where('title', 'Food tasting')->sole()->assigned_to);
     }
@@ -43,10 +42,6 @@ class TaskAssignmentTest extends TestCase
         $this->actingAs($planner)->post('/tasks', $this->taskData())->assertSessionHasNoErrors();
         $task = Task::sole();
         $this->assertSame($planner->id, $task->assigned_to);
-
-        $admin = User::factory()->admin()->create();
-        $this->actingAs($admin)->put("/tasks/{$task->id}", $this->taskData(['title' => 'Renamed']))->assertSessionHasNoErrors();
-        $this->assertSame($planner->id, $task->fresh()->assigned_to);
     }
 
     public function test_changing_a_weddings_planner_moves_its_open_tasks(): void

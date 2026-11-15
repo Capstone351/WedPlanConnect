@@ -101,13 +101,22 @@ Route::middleware('auth')->group(function () {
         // Chatbot knowledge base
         Route::get('/faqs/logs', [Admin\FaqController::class, 'logs'])->name('faqs.logs');
         Route::resource('faqs', Admin\FaqController::class)->except('show');
+
+        // Nudge a planner about overdue tasks and past weddings left open
+        Route::post('/planners/{user}/remind', Admin\PlannerReminderController::class)->middleware('throttle:10,1')->name('planners.remind');
+    });
+
+    // Test-mode email outbox (only while MAIL_MAILER=log). Admin only: it holds password reset links and one-time PINs.
+    Route::middleware('role:admin')->group(function () {
+        Route::get('/outbox', [OutboxController::class, 'index'])->name('outbox.index');
+        Route::get('/outbox/{message}', [OutboxController::class, 'show'])->name('outbox.show');
     });
 
     /*
-    | Admin + Wedding Planner operations
+    | Wedding Planner operations
     */
-    Route::middleware('role:admin,planner')->group(function () {
-        Route::get('/planner', Planner\DashboardController::class)->middleware('role:planner')->name('planner.dashboard');
+    Route::middleware('role:planner')->group(function () {
+        Route::get('/planner', Planner\DashboardController::class)->name('planner.dashboard');
 
         // Booking Management (UC-03)
         Route::resource('bookings', BookingController::class)->except('destroy');
@@ -156,12 +165,6 @@ Route::middleware('auth')->group(function () {
         Route::patch('/portfolio/{portfolio}/photos/{photo}/cover', [PortfolioController::class, 'cover'])->name('portfolio.photos.cover');
         Route::delete('/portfolio/{portfolio}/photos/{photo}', [PortfolioController::class, 'destroyPhoto'])->name('portfolio.photos.destroy');
 
-        // Test-mode email outbox (only while MAIL_MAILER=log). Admin only: it holds password reset links and one-time PINs.
-        Route::middleware('role:admin')->group(function () {
-            Route::get('/outbox', [OutboxController::class, 'index'])->name('outbox.index');
-            Route::get('/outbox/{message}', [OutboxController::class, 'show'])->name('outbox.show');
-        });
-
         // Reports (UC-09)
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
         Route::get('/reports/{type}', [ReportController::class, 'show'])->name('reports.show');
@@ -169,9 +172,9 @@ Route::middleware('auth')->group(function () {
     });
 
     /*
-    | Supplier catalog as couples see it; staff may open it as a preview.
+    | Supplier catalog as couples see it; planners may open it as a preview.
     */
-    Route::middleware('role:client,admin,planner')->prefix('my')->name('client.')->group(function () {
+    Route::middleware('role:client,planner')->prefix('my')->name('client.')->group(function () {
         Route::get('/catalog', [Client\CatalogController::class, 'index'])->name('catalog');
         Route::get('/catalog/{supplier}', [Client\CatalogController::class, 'show'])->name('catalog.show');
     });

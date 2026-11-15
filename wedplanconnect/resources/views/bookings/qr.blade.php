@@ -39,12 +39,6 @@
                 </div>
             </div>
 
-            @if (\App\Models\OutboxMessage::enabled() && auth()->user()->role === 'admin')
-                <div class="rounded-xl border border-gold-300 bg-gold-50 px-4 py-3 text-sm text-gold-700">
-                    <strong>Test mode:</strong> PIN emails aren't delivered yet. After scanning, read the PIN in the
-                    <a href="{{ route('outbox.index') }}" class="font-semibold underline" target="_blank">Email outbox</a>.
-                </div>
-            @endif
         </div>
     </div>
 </x-layouts.app>

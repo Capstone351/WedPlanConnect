@@ -83,7 +83,7 @@ class BookingController extends Controller
     {
         $data = $this->validated($request);
 
-        $data['planner_id'] = $request->user()->role === 'planner' ? $request->user()->id : $data['planner_id'];
+        $data['planner_id'] = $request->user()->id;
 
         $booking = Booking::withDateLock($data['event_date'], fn () => DB::transaction(function () use ($data, $request) {
             $this->guardConflict($data['event_date'], $data['venue'], null, $data['planner_id']);
@@ -124,7 +124,6 @@ class BookingController extends Controller
             'selectableProducts' => SupplierProduct::selectable()->withReserved()->with('supplier:id,name,category')
                 ->whereNotIn('id', $booking->bookingProducts->pluck('supplier_product_id'))
                 ->get()->sortBy(fn ($p) => [$p->supplier->category, $p->supplier->name, $p->name])->values(),
-            'planners' => User::whereIn('role', ['planner', 'admin'])->orderBy('name')->get(),
             'qrSvg' => $booking->qr_token ? QrCode::format('svg')->size(180)->margin(1)->generate($booking->statusUrl()) : null,
         ]);
     }
@@ -145,10 +144,6 @@ class BookingController extends Controller
         $data = $this->validated($request, $booking);
         $request->validate(['change_reason' => ['nullable', 'string', 'max:500']]);
         $reason = trim((string) $request->input('change_reason')) ?: null;
-
-        if ($request->user()->role !== 'admin') {
-            unset($data['planner_id']);
-        }
 
         // The contract can't drop below what the couple has already paid.
         $paid = $booking->totalPaid();
@@ -299,7 +294,6 @@ class BookingController extends Controller
         return [
             'booking' => $booking,
             'clients' => User::where('role', 'client')->with('preferredPlanner:id,name')->orderBy('name')->get(['id', 'name', 'email', 'phone', 'preferred_planner_id', 'wedding_date', 'wedding_date_alt', 'wedding_venue']),
-            'planners' => User::where('role', 'planner')->orderBy('name')->get(['id', 'name']),
             'packages' => [...array_keys(Booking::packages()), 'Custom Package'],
         ];
     }
@@ -312,7 +306,6 @@ class BookingController extends Controller
             'client_id' => ['nullable', 'required_without:new_client_email', Rule::exists('users', 'id')->where('role', 'client')],
             'new_client_name' => ['nullable', 'required_without:client_id', 'string', 'max:150'],
             'new_client_email' => ['nullable', 'required_without:client_id', 'email', 'max:150', 'unique:users,email'],
-            'planner_id' => [$request->user()->role === 'admin' ? 'required' : 'nullable', Rule::exists('users', 'id')->where('role', 'planner')],
             'client_name' => ['required', 'string', 'max:150'],
             'contact_number' => ['required', 'string', 'max:20', 'regex:/^[0-9+\-\s()]{7,20}$/'],
             'event_date' => array_filter(['required', 'date', $dateChanged ? 'after_or_equal:today' : null]),

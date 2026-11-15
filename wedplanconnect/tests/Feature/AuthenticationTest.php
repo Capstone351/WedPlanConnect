@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Booking;
 use App\Models\Supplier;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -67,14 +68,26 @@ class AuthenticationTest extends TestCase
         $this->actingAs(User::factory()->planner()->create())->get('/admin/users')->assertForbidden();
     }
 
-    public function test_staff_can_preview_the_catalog_but_not_save_favorites(): void
+    public function test_planners_can_preview_the_catalog_but_not_save_favorites(): void
     {
-        $admin = User::factory()->admin()->create();
+        $planner = User::factory()->planner()->create();
         $supplier = Supplier::factory()->create();
 
-        $this->actingAs($admin)->get('/my/catalog')->assertOk()->assertSee('Staff preview');
-        $this->actingAs($admin)->get("/my/catalog/{$supplier->id}")->assertOk();
-        $this->actingAs($admin)->post('/my/catalog/preferences', ['supplier_id' => $supplier->id])->assertForbidden();
+        $this->actingAs($planner)->get('/my/catalog')->assertOk()->assertSee('Staff preview');
+        $this->actingAs($planner)->get("/my/catalog/{$supplier->id}")->assertOk();
+        $this->actingAs($planner)->post('/my/catalog/preferences', ['supplier_id' => $supplier->id])->assertForbidden();
+    }
+
+    public function test_admin_cannot_use_the_wedding_planners_pages(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $booking = Booking::factory()->create();
+
+        foreach (['/planner', '/bookings', "/bookings/{$booking->id}", '/suppliers', '/tasks', '/inventory', '/payments', '/meetings', '/reports', '/portfolio', '/my/catalog'] as $url) {
+            $this->actingAs($admin)->get($url)->assertForbidden();
+        }
+
+        $this->actingAs($admin)->get('/admin')->assertOk()->assertDontSee('href="'.route('bookings.index').'"', false);
     }
 
     public function test_forbidden_page_shows_current_account_and_switch_option(): void
