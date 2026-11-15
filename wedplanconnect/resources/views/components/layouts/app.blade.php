@@ -4,7 +4,7 @@
     $operations = [
         ['Bookings', 'bookings.index', 'bookings.*', 'calendar'],
         // Badge: meeting requests still waiting for an answer.
-        ['Meetings', 'meetings.index', 'meetings.*', 'chat', in_array($user->role, ['admin', 'planner'], true) ? \App\Models\Meeting::visibleTo($user)->upcoming()->where('status', 'requested')->count() : 0],
+        ['Meetings', 'meetings.index', 'meetings.*', 'chat', $user->role === 'planner' ? \App\Models\Meeting::visibleTo($user)->upcoming()->where('status', 'requested')->count() : 0],
         ['Suppliers', 'suppliers.index', 'suppliers.*', 'store'],
         ['Tasks', 'tasks.index', 'tasks.*', 'clipboard'],
         ['Inventory', 'inventory.index', 'inventory.*', 'cube'],
@@ -21,7 +21,6 @@
     $nav = match ($user->role) {
         'admin' => [
             '' => [['Dashboard', 'admin.dashboard', 'admin.dashboard', 'home'], $notifications],
-            'Operations' => $operations,
             'Administration' => [
                 ['Users', 'admin.users.index', 'admin.users.*', 'users'],
                 ['Chatbot FAQ', 'admin.faqs.index', 'admin.faqs.*', 'chat'],

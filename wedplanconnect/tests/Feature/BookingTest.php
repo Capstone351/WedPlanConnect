@@ -68,10 +68,6 @@ class BookingTest extends TestCase
         $this->actingAs($this->planner)->post('/bookings', $this->payload(['venue' => 'Marco Polo Plaza']))->assertSessionHasErrors('event_date');
         $this->actingAs($this->planner)->post('/bookings', $this->payload(['venue' => null]))->assertSessionHasErrors('event_date');
 
-        // An admin can't assign them a second wedding that day either.
-        $this->actingAs(User::factory()->admin()->create())
-            ->post('/bookings', $this->payload(['venue' => null, 'planner_id' => $this->planner->id]))->assertSessionHasErrors('event_date');
-
         $this->assertSame(1, Booking::count());
     }
 
@@ -119,7 +115,6 @@ class BookingTest extends TestCase
         $other = Booking::factory()->create();
 
         $this->actingAs($this->planner)->get("/bookings/{$other->id}")->assertForbidden();
-        $this->actingAs(User::factory()->admin()->create())->get("/bookings/{$other->id}")->assertOk();
     }
 
     public function test_suppliers_can_be_assigned_and_status_updated(): void

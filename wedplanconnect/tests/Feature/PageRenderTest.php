@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Booking;
+use App\Models\Supplier;
 use App\Models\User;
 use Database\Seeders\DemoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -31,13 +32,9 @@ class PageRenderTest extends TestCase
     public function test_admin_pages_render(): void
     {
         $admin = User::where('role', 'admin')->first();
-        $booking = Booking::where('status', 'confirmed')->first();
 
         foreach ([
-            '/admin', '/admin/users', '/admin/users/create', "/admin/users/{$admin->id}/edit", '/admin/faqs', '/admin/faqs/create', '/admin/faqs/logs',
-            '/bookings', '/bookings/create', "/bookings/{$booking->id}", "/bookings/{$booking->id}/edit", "/bookings/{$booking->id}/qr",
-            '/suppliers', '/suppliers/create', '/tasks', '/tasks/create', '/inventory', '/inventory/create',
-            '/payments', "/payments?booking_id={$booking->id}", '/reports', '/account',
+            '/admin', '/admin/users', '/admin/users/create', "/admin/users/{$admin->id}/edit", '/admin/faqs', '/admin/faqs/create', '/admin/faqs/logs', '/account',
         ] as $url) {
             $this->actingAs($admin)->get($url)->assertOk();
         }
@@ -46,8 +43,13 @@ class PageRenderTest extends TestCase
     public function test_planner_pages_render(): void
     {
         $planner = User::where('email', 'planner@fmtweddings.test')->first();
+        $booking = Booking::where('planner_id', $planner->id)->where('status', 'confirmed')->first();
 
-        foreach (['/planner', '/bookings', '/tasks', '/inventory', '/payments', '/reports', '/reports/daily-operations'] as $url) {
+        foreach ([
+            '/planner', '/bookings', '/bookings/create', "/bookings/{$booking->id}", "/bookings/{$booking->id}/edit", "/bookings/{$booking->id}/qr",
+            '/suppliers', '/suppliers/create', '/tasks', '/tasks/create', '/inventory', '/inventory/create',
+            '/payments', "/payments?booking_id={$booking->id}", '/reports', '/reports/daily-operations', '/account',
+        ] as $url) {
             $this->actingAs($planner)->get($url)->assertOk();
         }
     }
@@ -76,7 +78,7 @@ class PageRenderTest extends TestCase
     public function test_client_catalog_hides_supplier_contacts(): void
     {
         $client = User::where('email', 'client@fmtweddings.test')->first();
-        $supplier = \App\Models\Supplier::first();
+        $supplier = Supplier::first();
 
         $this->actingAs($client)->get('/my/catalog')->assertSee($supplier->name)->assertDontSee($supplier->phone);
     }

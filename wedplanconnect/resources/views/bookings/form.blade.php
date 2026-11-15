@@ -33,17 +33,6 @@
                     <label for="total_amount" class="label">Contract amount (₱)</label>
                     <input id="total_amount" name="total_amount" type="number" min="0" step="0.01" value="{{ old('total_amount', $booking->total_amount) }}" required class="input">
                 </div>
-                @if (auth()->user()->role === 'admin')
-                    <div class="sm:col-span-2">
-                        <label for="planner_id" class="label">Assigned wedding planner</label>
-                        <select id="planner_id" name="planner_id" required class="input">
-                            <option value="">Select a planner…</option>
-                            @foreach ($planners as $p)
-                                <option value="{{ $p->id }}" @selected(old('planner_id', $booking->planner_id) == $p->id)>{{ $p->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                @endif
             </div>
         </div>
 

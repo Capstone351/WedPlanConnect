@@ -11,7 +11,6 @@ use App\Models\Supplier;
 use App\Models\Task;
 use App\Models\User;
 use App\Notifications\PaymentRecorded;
-use App\Services\ReportService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -199,16 +198,11 @@ class OperationsTest extends TestCase
 
     public function test_reports_respect_role_scope(): void
     {
-        $admin = User::factory()->admin()->create();
         $planner = User::factory()->planner()->create();
         Booking::factory()->create(['planner_id' => $planner->id]);
 
-        foreach (array_keys(ReportService::TYPES) as $type) {
-            $this->actingAs($admin)->get("/reports/{$type}")->assertOk();
-        }
-
         $this->actingAs($planner)->get('/reports/booking-status')->assertForbidden();
         $this->actingAs($planner)->get('/reports/daily-operations')->assertOk();
-        $this->actingAs($admin)->get('/reports/client-payment-history/pdf')->assertOk()->assertHeader('content-type', 'application/pdf');
+        $this->actingAs($planner)->get('/reports/daily-operations/pdf')->assertOk()->assertHeader('content-type', 'application/pdf');
     }
 }

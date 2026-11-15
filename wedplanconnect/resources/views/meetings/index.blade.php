@@ -8,7 +8,7 @@
         </div>
         <div class="overflow-x-auto">
             <table class="table">
-                <thead><tr><th>When</th><th>Couple</th>@if (auth()->user()->role === 'admin')<th>Planner</th>@endif<th>Meeting</th><th>Status</th><th class="text-right">Reply</th></tr></thead>
+                <thead><tr><th>When</th><th>Couple</th><th>Meeting</th><th>Status</th><th class="text-right">Reply</th></tr></thead>
                 <tbody>
                     @forelse ($upcoming as $m)
                         <tr>
@@ -17,7 +17,6 @@
                                 <div class="font-medium">{{ $m->client->coupleNames() ?? $m->client->name }}</div>
                                 <div class="text-xs text-stone-500">{{ $m->client->email }}@if ($m->client->phone) · {{ $m->client->phone }}@endif</div>
                             </td>
-                            @if (auth()->user()->role === 'admin')<td>{{ $m->planner->name }}</td>@endif
                             <td>
                                 <div>{{ $m->modeLabel() }}@if ($m->location) · {{ $m->location }}@endif</div>
                                 @if ($m->agenda)<div class="max-w-xs text-xs text-stone-500">"{{ $m->agenda }}"</div>@endif

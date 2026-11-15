@@ -26,9 +26,12 @@ class FaqController extends Controller
         return view('admin.faqs.index', compact('faqs', 'categories'));
     }
 
-    public function create(): View
+    /** A question WedBot couldn't answer can be passed in (?question=) to start the new entry. */
+    public function create(Request $request): View
     {
-        return view('admin.faqs.form', ['faq' => new Faq, 'categories' => Faq::distinct()->pluck('category')]);
+        $faq = new Faq(['question' => $request->string('question')->limit(1000, '')->toString()]);
+
+        return view('admin.faqs.form', ['faq' => $faq, 'categories' => Faq::distinct()->pluck('category')]);
     }
 
     public function store(Request $request): RedirectResponse
