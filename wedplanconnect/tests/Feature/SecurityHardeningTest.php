@@ -201,13 +201,18 @@ class SecurityHardeningTest extends TestCase
         $payment = Payment::sole();
         $this->assertSame($booking->planner_id, $payment->recorded_by);
 
-        $this->actingAs($booking->planner)->delete("/payments/{$payment->id}")->assertSessionHasErrors('void_reason');
+        $this->actingAs($booking->planner)->delete("/payments/{$payment->id}", ['void_reason' => 'Recorded twice by mistake.'])->assertForbidden();
+        $this->actingAs($booking->planner)->get("/payments?booking_id={$booking->id}")->assertOk()->assertDontSee('Void payment')->assertSee('Only the admin can void');
         $this->assertNotSoftDeleted($payment);
 
-        $this->actingAs($booking->planner)->delete("/payments/{$payment->id}", ['void_reason' => 'Recorded twice by mistake.'])->assertSessionHasNoErrors();
+        $admin = User::factory()->admin()->create();
+        $this->actingAs($admin)->delete("/payments/{$payment->id}")->assertSessionHasErrors('void_reason');
+        $this->assertNotSoftDeleted($payment);
+
+        $this->actingAs($admin)->delete("/payments/{$payment->id}", ['void_reason' => 'Recorded twice by mistake.'])->assertSessionHasNoErrors();
 
         $this->assertSoftDeleted($payment);
-        $this->assertSame([$booking->planner_id, 'Recorded twice by mistake.'], [$payment->fresh()->voided_by, $payment->fresh()->void_reason]);
+        $this->assertSame([$admin->id, 'Recorded twice by mistake.'], [$payment->fresh()->voided_by, $payment->fresh()->void_reason]);
         Notification::assertSentTo($booking->client, PaymentVoided::class);
 
         $this->actingAs($booking->planner)->get("/payments?booking_id={$booking->id}")->assertOk()

@@ -148,7 +148,8 @@ Route::middleware('auth')->group(function () {
         // Payments (UC-08)
         Route::get('/payments', [PaymentController::class, 'index'])->name('payments.index');
         Route::post('/payments', [PaymentController::class, 'store'])->name('payments.store');
-        Route::delete('/payments/{payment}', [PaymentController::class, 'destroy'])->name('payments.destroy');
+        // Only the admin can void a payment, so a planner can't remove money they recorded.
+        Route::delete('/payments/{payment}', [PaymentController::class, 'destroy'])->middleware('role:admin')->name('payments.destroy');
         Route::get('/bookings/{booking}/contract.pdf', [PaymentController::class, 'contract'])->name('bookings.contract');
 
         // Public portfolio management

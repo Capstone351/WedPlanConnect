@@ -108,6 +108,7 @@
                                     <div class="font-medium tabular-nums">₱{{ number_format($p->amount, 2) }} <span class="text-xs font-normal text-stone-500">· {{ $p->methodLabel() }}</span></div>
                                     <div class="text-xs text-stone-500">{{ $p->payment_date->format('M j, Y') }}{{ $p->receipt_number ? ' · OR '.$p->receipt_number : '' }}{{ $p->notes ? ' · '.$p->notes : '' }}{{ $p->recorder ? ' · Recorded by '.$p->recorder->name : '' }}</div>
                                 </div>
+                                @if (auth()->user()->role === 'admin')
                                 <details class="relative" @if ($errors->has('void_reason') && old('void_payment') == $p->id) open @endif>
                                     <summary class="btn-icon cursor-pointer list-none" title="Void payment" aria-label="Void payment"><x-icon name="trash" class="size-4" /></summary>
                                     <form method="POST" action="{{ route('payments.destroy', $p) }}" class="card absolute right-0 z-20 mt-2 w-72 space-y-2 p-4">
@@ -119,6 +120,7 @@
                                         <button class="btn-danger btn-sm w-full">Void payment</button>
                                     </form>
                                 </details>
+                                @endif
                             </li>
                         @empty
                             <li class="px-5 py-6 text-center text-stone-500">No payments recorded yet.</li>
@@ -130,6 +132,9 @@
                             </li>
                         @endforeach
                     </ul>
+                    @if (auth()->user()->role !== 'admin' && $selected->payments->isNotEmpty())
+                        <p class="border-t border-stone-100 px-5 py-3 text-xs text-stone-500">Recorded payments can't be changed or removed. Only the admin can void a payment that was recorded by mistake.</p>
+                    @endif
                 </div>
             @endif
         </div>
