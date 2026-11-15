@@ -4,6 +4,7 @@
         <div class="mb-6 rounded-xl border border-gold-200 bg-gold-50 px-5 py-4 text-sm text-stone-700">
             <strong>Your down payment is made at this meeting.</strong>
             Meet your planner in person to {{ $pendingBooking->missingBeforeConfirm() ? 'agree on the '.\Illuminate\Support\Arr::join($pendingBooking->missingBeforeConfirm(), ', ', ' and ').' and ' : 'go over '.$pendingBooking->package.' and ' }}pay the down payment. Your booking for {{ $pendingBooking->event_date->format('F j, Y') }} is confirmed after that.
+            <div class="mt-1 text-xs text-stone-500">Cancellation policy: {{ \App\Models\Booking::cancellationPolicy() }}</div>
         </div>
     @endif
     <div class="grid gap-6 lg:grid-cols-3 lg:items-start">

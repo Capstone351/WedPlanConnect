@@ -37,6 +37,7 @@
                     <textarea id="reason" name="reason" rows="3" maxlength="500" required class="input" placeholder="e.g. The planner is not available on this date.">{{ old('reason') }}</textarea>
                     @error('reason')<p class="error-text">{{ $message }}</p>@enderror
                     <p class="hint">The date is freed, the QR code stops working, and open tasks are archived.</p>
+                    <p class="hint">{{ \App\Models\Booking::cancellationPolicy() }}</p>
                     <button class="btn-danger w-full">Cancel this booking</button>
                 </form>
             </details>

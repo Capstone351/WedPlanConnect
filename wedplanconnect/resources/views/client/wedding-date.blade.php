@@ -23,6 +23,7 @@
                     @endif
                 @endif
                 <p class="mt-4 max-w-md text-sm text-brand-100/70">Need a different date? Please contact your planner, <strong class="text-gold-200">{{ $booking->planner->name }}</strong>, so they can check availability.</p>
+                <p class="mt-2 max-w-md text-xs text-brand-100/60">Cancellation policy: {{ \App\Models\Booking::cancellationPolicy() }}</p>
             </div>
         </div>
     @else
@@ -129,6 +130,7 @@
                                 @error('venue')<p class="error-text">{{ $message }}</p>@enderror
                             </div>
                         </div>
+                        <p class="rounded-lg bg-gold-50 px-3 py-2.5 text-sm text-stone-700 ring-1 ring-gold-200"><strong>Cancellation policy:</strong> {{ \App\Models\Booking::cancellationPolicy() }}</p>
                         <button class="btn-gold">Send booking to {{ $user->preferredPlanner->name }}</button>
                     @endif
                 </div>
