@@ -34,7 +34,8 @@ class BookingRequestTest extends TestCase
 
     public function test_couple_sends_their_booking_to_their_chosen_planner(): void
     {
-        $this->actingAs($this->client)->get('/my/wedding-date')->assertOk()->assertSee('Send booking to Maria Clara Uy')->assertSee('Package B');
+        $this->actingAs($this->client)->get('/my/wedding-date')->assertOk()->assertSee('Send booking to Maria Clara Uy')->assertSee('Package B')
+            ->assertSee('only 10% of the down payment will be returned');
 
         // Even with a package chosen, the couple is sent to book a meeting: the down payment is made there.
         $agenda = 'Go over Package B and pay the down payment.';
@@ -42,7 +43,8 @@ class BookingRequestTest extends TestCase
             ->assertRedirect(route('client.meetings', ['mode' => 'in_person', 'agenda' => $agenda]))
             ->assertSessionHas('status', fn ($s) => str_contains($s, 'Next, book an in-person meeting with them to pay your down payment.'));
         $this->actingAs($this->client)->get(route('client.meetings', ['agenda' => $agenda]))->assertOk()
-            ->assertSee('Your down payment is made at this meeting.')->assertSee($agenda);
+            ->assertSee('Your down payment is made at this meeting.')->assertSee($agenda)
+            ->assertSee('only 10% of the down payment will be returned');
         $this->actingAs($this->client)->get('/my/wedding-date')->assertOk()->assertSee('Book a meeting');
 
         Meeting::factory()->create(['client_id' => $this->client->id, 'planner_id' => $this->planner->id, 'scheduled_at' => now()->addWeek(), 'status' => 'requested']);

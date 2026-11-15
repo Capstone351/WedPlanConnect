@@ -100,6 +100,9 @@
         <tr class="grand"><td class="right">Remaining balance</td><td class="right">₱{{ number_format($balance, 2) }}</td></tr>
     </table>
 
+    <h2>Cancellation policy</h2>
+    <p>{{ \App\Models\Booking::cancellationPolicy() }}</p>
+
     <table class="sign">
         <tr>
             <td><div class="line">{{ $booking->client_name }}<br>Client</div></td>

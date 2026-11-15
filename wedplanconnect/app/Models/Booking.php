@@ -452,6 +452,12 @@ class Booking extends Model
             : "Go over {$this->package} and pay the down payment.";
     }
 
+    /** "If the couple asks to cancel the booking, only 10% of the down payment will be returned." */
+    public static function cancellationPolicy(): string
+    {
+        return str_replace(':percent', (string) config('wedplan.cancellation_refund_percent'), config('wedplan.cancellation_policy'));
+    }
+
     public function totalPaid(): float
     {
         return (float) $this->payments()->sum('amount');

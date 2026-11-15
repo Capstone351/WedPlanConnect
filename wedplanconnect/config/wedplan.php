@@ -90,6 +90,12 @@ return [
     'conflict_scope' => env('WEDPLAN_CONFLICT_SCOPE', 'date_venue'),
 
     /*
+    | Cancellation policy: the share of the down payment returned when the couple asks to cancel.
+    */
+    'cancellation_refund_percent' => 10,
+    'cancellation_policy' => 'If the couple asks to cancel the booking, only :percent% of the down payment will be returned.',
+
+    /*
     | Days an unconfirmed (pending) booking holds the planner's date before it is released.
     */
     'pending_hold_days' => (int) env('WEDPLAN_PENDING_HOLD_DAYS', 14),
