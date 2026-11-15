@@ -7,6 +7,7 @@ use App\Models\BookingSupplier;
 use App\Models\Supplier;
 use App\Models\SupplierProduct;
 use App\Models\User;
+use App\Notifications\SupplierBookingUpdated;
 use App\Notifications\SupplierOrderAnswered;
 use App\Notifications\SupplierOrderSent;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -43,6 +44,53 @@ class SupplierOrderTest extends TestCase
 
         $this->assertTrue($assignment->fresh()->awaitingReply());
         Notification::assertSentTo($vendor, SupplierOrderSent::class, fn ($n, $channels) => $n->items->count() === 1 && $channels === ['database', 'mail']);
+    }
+
+    public function test_assigning_a_supplier_notifies_them_right_away(): void
+    {
+        Notification::fake();
+        $vendor = User::factory()->vendor()->create();
+        $withLogin = Supplier::factory()->create(['user_id' => $vendor->id, 'name' => 'Lorr Aljas']);
+        $noContact = Supplier::factory()->create(['user_id' => null, 'email' => null, 'name' => 'Walk-in Florist']);
+        $booking = Booking::factory()->create();
+
+        $this->actingAs($booking->planner)->post("/bookings/{$booking->id}/suppliers", ['supplier_ids' => [$withLogin->id, $noContact->id]])
+            ->assertSessionHasNoErrors()
+            ->assertSessionHas('status', fn ($s) => str_contains($s, 'Order sent to Lorr Aljas.') && str_contains($s, 'Walk-in Florist has no vendor account or email'));
+
+        Notification::assertSentTo($vendor, SupplierOrderSent::class, fn ($n, $channels) => $channels === ['database', 'mail']);
+        $this->assertTrue($booking->bookingSuppliers()->where('supplier_id', $withLogin->id)->sole()->awaitingReply());
+        $this->assertSame('pending', $booking->bookingSuppliers()->where('supplier_id', $noContact->id)->sole()->status);
+
+        // Assigning them again doesn't send a second order.
+        $this->actingAs($booking->planner)->post("/bookings/{$booking->id}/suppliers", ['supplier_ids' => [$withLogin->id]]);
+        Notification::assertSentToTimes($vendor, SupplierOrderSent::class, 1);
+    }
+
+    public function test_suppliers_hear_when_removed_or_the_wedding_is_cancelled_or_moved(): void
+    {
+        Notification::fake();
+        [$booking, $vendor, $assignment] = $this->bookingWithVendorOrder();
+        $booking->update(['status' => 'confirmed']);
+        $assignment->markOrderSent();
+
+        // Date changed.
+        $this->actingAs($booking->planner)->put("/bookings/{$booking->id}", [
+            'client_id' => $booking->client_id, 'client_name' => $booking->client_name, 'contact_number' => '09171234567',
+            'event_date' => $booking->event_date->copy()->addWeek()->toDateString(), 'venue' => $booking->venue, 'package' => $booking->package,
+            'total_amount' => $booking->total_amount, 'change_reason' => 'Venue moved the date.',
+        ])->assertSessionHasNoErrors();
+        Notification::assertSentTo($vendor, SupplierBookingUpdated::class, fn ($n) => $n->title === 'Wedding details changed' && str_contains($n->message, 'Venue moved the date.'));
+
+        // Cancelled.
+        $this->actingAs($booking->planner)->patch("/bookings/{$booking->id}/cancel", ['reason' => 'The couple called it off.'])->assertSessionHasNoErrors();
+        Notification::assertSentTo($vendor, SupplierBookingUpdated::class, fn ($n) => $n->title === 'Wedding cancelled' && str_contains($n->message, 'The couple called it off.'));
+
+        // Removed from another wedding after the order was sent.
+        [$other, $otherVendor, $otherAssignment] = $this->bookingWithVendorOrder();
+        $otherAssignment->markOrderSent();
+        $this->actingAs($other->planner)->delete("/bookings/{$other->id}/suppliers/{$otherAssignment->id}")->assertSessionHasNoErrors();
+        Notification::assertSentTo($otherVendor, SupplierBookingUpdated::class, fn ($n) => $n->title === 'Removed from a wedding' && ! $n->stillAssigned);
     }
 
     public function test_supplier_without_login_gets_the_order_by_email_only(): void
