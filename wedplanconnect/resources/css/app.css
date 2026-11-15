@@ -219,8 +219,10 @@
         .table thead {
             @apply hidden;
         }
+        /* "!" because Tailwind's own "table" utility (display: table) would otherwise win,
+           and a real table can't shrink below its widest content. */
         .table, .table tbody, .table tr, .table td {
-            @apply block w-full;
+            @apply block! w-full;
         }
         .table tbody tr {
             @apply border-b border-line px-4 py-3;

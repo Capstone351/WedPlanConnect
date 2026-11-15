@@ -21,9 +21,9 @@
             <div class="card">
                 <div class="card-header"><h2 class="card-title">How the couple uses it</h2></div>
                 <ol class="card-body space-y-3 text-sm text-stone-700">
-                    <li class="flex gap-3"><span class="grid size-6 shrink-0 place-items-center rounded-full bg-brand-800 text-xs font-semibold text-gold-200">1</span>They scan the code with their phone camera (no app needed).</li>
-                    <li class="flex gap-3"><span class="grid size-6 shrink-0 place-items-center rounded-full bg-brand-800 text-xs font-semibold text-gold-200">2</span>A 6-digit PIN is emailed to <strong>{{ $booking->client->email }}</strong>.</li>
-                    <li class="flex gap-3"><span class="grid size-6 shrink-0 place-items-center rounded-full bg-brand-800 text-xs font-semibold text-gold-200">3</span>They enter the PIN and see live progress: milestones, suppliers, and set-up items.</li>
+                    <li class="flex gap-3"><span class="grid size-6 shrink-0 place-items-center rounded-full bg-brand-800 text-xs font-semibold text-gold-200">1</span><span>They scan the code with their phone camera (no app needed).</span></li>
+                    <li class="flex gap-3"><span class="grid size-6 shrink-0 place-items-center rounded-full bg-brand-800 text-xs font-semibold text-gold-200">2</span><span class="min-w-0">A 6-digit PIN is emailed to <strong class="break-words">{{ $booking->client->email }}</strong>.</span></li>
+                    <li class="flex gap-3"><span class="grid size-6 shrink-0 place-items-center rounded-full bg-brand-800 text-xs font-semibold text-gold-200">3</span><span>They enter the PIN and see live progress: milestones, suppliers, and set-up items.</span></li>
                 </ol>
             </div>
 
