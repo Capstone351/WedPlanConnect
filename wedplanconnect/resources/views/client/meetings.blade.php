@@ -2,8 +2,8 @@
     subheading="Pick a date and time to meet your Wedding Planner. They'll confirm it or suggest another time.">
     @if ($pendingBooking)
         <div class="mb-6 rounded-xl border border-gold-200 bg-gold-50 px-5 py-4 text-sm text-stone-700">
-            <strong>Your down payment is made at this meeting.</strong>
-            Meet your planner in person to {{ $pendingBooking->missingBeforeConfirm() ? 'agree on the '.\Illuminate\Support\Arr::join($pendingBooking->missingBeforeConfirm(), ', ', ' and ').' and ' : 'go over '.$pendingBooking->package.' and ' }}pay the down payment. Your booking for {{ $pendingBooking->event_date->format('F j, Y') }} is confirmed after that.
+            <strong>You sign the contract and make your down payment at this meeting.</strong>
+            Meet your planner in person to {{ $pendingBooking->missingBeforeConfirm() ? 'agree on the '.\Illuminate\Support\Arr::join($pendingBooking->missingBeforeConfirm(), ', ', ' and ').', then sign the contract for ' : 'sign the contract for ' }}{{ $pendingBooking->package ?? 'your wedding' }} and pay the down payment. Your booking for {{ $pendingBooking->event_date->format('F j, Y') }} is confirmed after that.
             <div class="mt-1 text-xs text-stone-500">Cancellation policy: {{ \App\Models\Booking::cancellationPolicy() }}</div>
         </div>
     @endif
@@ -50,7 +50,8 @@
                     <div>
                         <label for="agenda" class="label">What you'd like to talk about <span class="font-normal text-stone-400">(optional)</span></label>
                         <textarea id="agenda" name="agenda" rows="3" maxlength="500" class="input"
-                            placeholder="e.g. Theme ideas, package inclusions, budget">{{ old('agenda', request('agenda')) }}</textarea>
+                            placeholder="e.g. Theme ideas, package inclusions, budget">{{ old('agenda', request('agenda', $suggestedAgenda)) }}</textarea>
+                        @if ($suggestedAgenda)<p class="hint">Filled in for you. Add anything else you'd like to talk about.</p>@endif
                     </div>
                     <button class="btn-primary w-full">Send meeting request</button>
                 </form>

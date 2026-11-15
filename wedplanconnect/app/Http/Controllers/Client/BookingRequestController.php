@@ -59,8 +59,8 @@ class BookingRequestController extends Controller
         // Every couple meets the planner next: the down payment is made at the meeting, then the booking is confirmed.
         return redirect()->route('client.meetings', ['mode' => 'in_person', 'agenda' => $booking->meetingAgenda()])
             ->with('status', "Your booking was sent to {$booking->planner->name}. Next, book an in-person meeting with them"
-                .($booking->missingBeforeConfirm() ? ' to agree on the '.Arr::join($booking->missingBeforeConfirm(), ', ', ' and ').' and' : ' to')
-                .' pay your down payment. They confirm your booking after that.');
+                .($booking->missingBeforeConfirm() ? ' to agree on the '.Arr::join($booking->missingBeforeConfirm(), ', ', ' and ').', then sign the contract and pay your down payment.' : ' for the contract signing and down payment.')
+                .' They confirm your booking after that.');
     }
 
     /** Everything the planner needs must be filled in, and the slot must still be free. */

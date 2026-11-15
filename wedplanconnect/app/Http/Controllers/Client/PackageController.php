@@ -49,6 +49,6 @@ class PackageController extends Controller
         $user->forceFill(['wedding_package' => $data['package']])->save();
 
         return redirect()->route('client.package')
-            ->with('status', "You chose {$data['package']} (₱".number_format(Booking::packagePrice($data['package']), 0).'). It will be included when you send your booking.');
+            ->with('status', "You chose {$data['package']} (₱".number_format(Booking::packagePrice($data['package']), 0).'). Next, send your booking, then book an in-person meeting with your planner for the contract signing and down payment.');
     }
 }

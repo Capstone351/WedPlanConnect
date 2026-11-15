@@ -31,10 +31,17 @@ class PackageChoiceTest extends TestCase
             ->assertSee('Choose Package A')->assertSee('Choose Package B')->assertSee('Choose Package C')
             ->assertDontSee('budget of');
 
-        $this->actingAs($this->client)->put('/my/package', ['package' => 'Package A'])->assertSessionHasNoErrors()->assertRedirect('/my/package');
+        $this->actingAs($this->client)->put('/my/package', ['package' => 'Package A'])->assertSessionHasNoErrors()->assertRedirect('/my/package')
+            ->assertSessionHas('status', fn ($s) => str_contains($s, 'book an in-person meeting with your planner for the contract signing and down payment'));
         $this->assertSame('Package A', $this->client->fresh()->wedding_package);
 
-        $this->actingAs($this->client)->get('/my/package')->assertOk()->assertSee('Your chosen package');
+        $this->actingAs($this->client)->get('/my/package')->assertOk()->assertSee('Your chosen package')
+            ->assertSee('Next steps for Package A')->assertSee('contract signing and down payment');
+
+        // The meeting topic is filled in for them, and they can still change it.
+        $this->client->forceFill(['preferred_planner_id' => User::factory()->planner()->create()->id])->save();
+        $this->actingAs($this->client)->get('/my/meetings')->assertOk()
+            ->assertSee('Contract signing and down payment for Package A.')->assertSee('Filled in for you.');
         $this->actingAs($this->client)->get('/my')->assertOk()->assertSee('Package A · ₱200,000', false)->assertDontSee('Set your budget');
 
         $this->actingAs($this->client)->put('/my/package', ['package' => 'Classic Elegance'])->assertSessionHasErrors('package');
