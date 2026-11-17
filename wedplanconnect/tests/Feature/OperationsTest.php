@@ -116,7 +116,7 @@ class OperationsTest extends TestCase
         $payment = Payment::create(['booking_id' => $booking->id, 'amount' => 10000, 'payment_date' => today(), 'method' => 'cash']);
 
         $this->actingAs($booking->planner)->get("/payments/{$payment->id}/edit")->assertNotFound();
-        $this->actingAs($booking->planner)->put("/payments/{$payment->id}", ['amount' => 1, 'method' => 'cash'])->assertMethodNotAllowed();
+        $this->actingAs($booking->planner)->put("/payments/{$payment->id}", ['amount' => 1, 'method' => 'cash'])->assertNotFound();
         $this->assertSame(10000.0, (float) $payment->fresh()->amount);
     }
 

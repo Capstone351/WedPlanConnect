@@ -25,7 +25,31 @@ class Payment extends Model
         return [
             'amount' => 'decimal:2',
             'payment_date' => 'date',
+            'void_requested_at' => 'datetime',
         ];
+    }
+
+    /** Planner who asked the admin to void this payment, while the request is open. */
+    public function voidRequester(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'void_requested_by')->withTrashed();
+    }
+
+    /** Payments a planner asked the admin to void, still waiting for the admin. */
+    public function scopeVoidRequested(Builder $query): Builder
+    {
+        return $query->whereNotNull('void_requested_at');
+    }
+
+    public function hasVoidRequest(): bool
+    {
+        return $this->void_requested_at !== null;
+    }
+
+    /** Clears an open void request (after the admin answers it). */
+    public function clearVoidRequest(): void
+    {
+        $this->forceFill(['void_requested_by' => null, 'void_requested_at' => null, 'void_request_reason' => null])->save();
     }
 
     public function booking(): BelongsTo

@@ -9,7 +9,9 @@ use App\Models\Task;
 use App\Models\User;
 use App\Notifications\BookingCancelled;
 use App\Notifications\BookingChanged;
+use App\Notifications\PaymentVoidAnswered;
 use App\Notifications\PaymentVoided;
+use App\Notifications\PaymentVoidRequested;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
@@ -201,22 +203,45 @@ class SecurityHardeningTest extends TestCase
         $payment = Payment::sole();
         $this->assertSame($booking->planner_id, $payment->recorded_by);
 
-        $this->actingAs($booking->planner)->delete("/payments/{$payment->id}", ['void_reason' => 'Recorded twice by mistake.'])->assertForbidden();
-        $this->actingAs($booking->planner)->get("/payments?booking_id={$booking->id}")->assertOk()->assertDontSee('Void payment')->assertSee('Only the admin can void');
-        $this->assertNotSoftDeleted($payment);
-
         $admin = User::factory()->admin()->create();
-        $this->actingAs($admin)->delete("/payments/{$payment->id}")->assertSessionHasErrors('void_reason');
-        $this->assertNotSoftDeleted($payment);
 
-        $this->actingAs($admin)->delete("/payments/{$payment->id}", ['void_reason' => 'Recorded twice by mistake.'])->assertSessionHasNoErrors();
+        // The planner can't void it; they ask the admin, with a reason.
+        $this->actingAs($booking->planner)->patch("/admin/payments/{$payment->id}/void")->assertForbidden();
+        $this->actingAs($booking->planner)->get("/payments?booking_id={$booking->id}")->assertOk()->assertSee('Ask admin to void');
+        $this->actingAs($booking->planner)->post("/payments/{$payment->id}/void-request")->assertSessionHasErrors('void_reason');
+        $this->actingAs($booking->planner)->post("/payments/{$payment->id}/void-request", ['void_reason' => 'Recorded twice by mistake.'])->assertSessionHasNoErrors();
+        $this->assertNotSoftDeleted($payment);
+        Notification::assertSentTo($admin, PaymentVoidRequested::class);
+        $this->actingAs($booking->planner)->get("/payments?booking_id={$booking->id}")->assertSee('Void requested · waiting for admin');
+        $this->actingAs($booking->planner)->post("/payments/{$payment->id}/void-request", ['void_reason' => 'Again.'])->assertSessionHasErrors('void_reason');
+
+        // The admin sees it in the action centre and voids it.
+        $this->actingAs($admin)->get('/admin')->assertOk()->assertSee('asks to void ₱30,000.00', false)->assertSee('Recorded twice by mistake.');
+        $this->actingAs($admin)->patch("/admin/payments/{$payment->id}/void")->assertSessionHasNoErrors();
 
         $this->assertSoftDeleted($payment);
-        $this->assertSame([$admin->id, 'Recorded twice by mistake.'], [$payment->fresh()->voided_by, $payment->fresh()->void_reason]);
+        $this->assertSame([$admin->id, 'Recorded twice by mistake.', null], [$payment->fresh()->voided_by, $payment->fresh()->void_reason, $payment->fresh()->void_requested_at]);
         Notification::assertSentTo($booking->client, PaymentVoided::class);
+        Notification::assertSentTo($booking->planner, PaymentVoidAnswered::class, fn ($n) => $n->voided);
+        $this->actingAs($admin)->patch("/admin/payments/{$payment->id}/void")->assertNotFound();
 
         $this->actingAs($booking->planner)->get("/payments?booking_id={$booking->id}")->assertOk()
             ->assertSee('Voided by')->assertSee('Recorded twice by mistake.')->assertSee('OR-9');
+    }
+
+    public function test_admin_can_keep_a_payment_a_planner_asked_to_void(): void
+    {
+        Notification::fake();
+        $booking = Booking::factory()->confirmed()->create(['total_amount' => 100000]);
+        $payment = Payment::create(['booking_id' => $booking->id, 'amount' => 5000, 'payment_date' => today(), 'method' => 'cash', 'recorded_by' => $booking->planner_id]);
+        $this->actingAs($booking->planner)->post("/payments/{$payment->id}/void-request", ['void_reason' => 'Wrong amount?'])->assertSessionHasNoErrors();
+
+        $this->actingAs(User::factory()->admin()->create())->patch("/admin/payments/{$payment->id}/keep", ['note' => 'The receipt shows it was paid.'])->assertSessionHasNoErrors();
+
+        $this->assertNotSoftDeleted($payment);
+        $this->assertFalse($payment->fresh()->hasVoidRequest());
+        Notification::assertSentTo($booking->planner, PaymentVoidAnswered::class, fn ($n) => ! $n->voided && $n->note === 'The receipt shows it was paid.');
+        Notification::assertNotSentTo($booking->client, PaymentVoided::class);
     }
 
     // --- Cross-planner access ----------------------------------------------

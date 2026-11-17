@@ -104,6 +104,10 @@ Route::middleware('auth')->group(function () {
 
         // Nudge a planner about overdue tasks and past weddings left open
         Route::post('/planners/{user}/remind', Admin\PlannerReminderController::class)->middleware('throttle:10,1')->name('planners.remind');
+
+        // Planners ask to void a payment; only the admin can void it or keep it.
+        Route::patch('/payments/{payment}/void', [Admin\PaymentVoidController::class, 'approve'])->name('payments.void');
+        Route::patch('/payments/{payment}/keep', [Admin\PaymentVoidController::class, 'keep'])->name('payments.keep');
     });
 
     // Test-mode email outbox (only while MAIL_MAILER=log). Admin only: it holds password reset links and one-time PINs.
@@ -157,16 +161,20 @@ Route::middleware('auth')->group(function () {
         // Payments (UC-08)
         Route::get('/payments', [PaymentController::class, 'index'])->name('payments.index');
         Route::post('/payments', [PaymentController::class, 'store'])->name('payments.store');
-        // Only the admin can void a payment, so a planner can't remove money they recorded.
-        Route::delete('/payments/{payment}', [PaymentController::class, 'destroy'])->middleware('role:admin')->name('payments.destroy');
+        // A planner can't remove money they recorded: they ask the admin to void it.
+        Route::post('/payments/{payment}/void-request', [PaymentController::class, 'requestVoid'])->name('payments.void-request');
         Route::get('/bookings/{booking}/contract.pdf', [PaymentController::class, 'contract'])->name('bookings.contract');
 
         // Public portfolio management
         Route::resource('portfolio', PortfolioController::class)->except('show');
         Route::patch('/portfolio/{portfolio}/photos/{photo}/cover', [PortfolioController::class, 'cover'])->name('portfolio.photos.cover');
         Route::delete('/portfolio/{portfolio}/photos/{photo}', [PortfolioController::class, 'destroyPhoto'])->name('portfolio.photos.destroy');
+    });
 
-        // Reports (UC-09)
+    /*
+    | Reports (UC-09): the admin sees every report (read-only), planners the operational ones.
+    */
+    Route::middleware('role:admin,planner')->group(function () {
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
         Route::get('/reports/{type}', [ReportController::class, 'show'])->name('reports.show');
         Route::get('/reports/{type}/pdf', [ReportController::class, 'pdf'])->name('reports.pdf');

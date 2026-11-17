@@ -59,6 +59,7 @@ class DashboardController extends Controller
             // The action centre: things only the Admin can resolve.
             'plannersToRemind' => $planners->filter(fn ($p) => $p->overdue_tasks_count || $p->unclosed_count)->values(),
             'lockedUsers' => User::where('locked_until', '>', now())->orderBy('locked_until')->get(),
+            'voidRequests' => Payment::voidRequested()->with('booking', 'voidRequester')->orderBy('void_requested_at')->get(),
             'unlinkedVendors' => User::where('role', 'vendor')->whereDoesntHave('supplierProfile')->orderBy('name')->get(),
             'unansweredQuestions' => $this->unansweredQuestions(),
             'overdueTasks' => Task::overdue()->with('booking', 'assignee')->orderBy('due_date')->limit(5)->get(),

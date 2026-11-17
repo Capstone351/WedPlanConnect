@@ -5,7 +5,7 @@
     $statusTotal = $statusCounts->sum();
     $statusColors = ['pending' => 'bg-amber-400', 'confirmed' => 'bg-emerald-500', 'completed' => 'bg-sky-500', 'cancelled' => 'bg-stone-300'];
     $supplierTotal = $supplierStatuses->sum();
-    $actionCount = $lockedUsers->count() + $unlinkedVendors->count() + $plannersToRemind->count() + $unansweredQuestions->count();
+    $actionCount = $voidRequests->count() + $lockedUsers->count() + $unlinkedVendors->count() + $plannersToRemind->count() + $unansweredQuestions->count();
 @endphp
 <x-layouts.app title="Admin Dashboard" :heading="'Good day, '.strtok(auth()->user()->name, ' ').'!'" :subheading="'Business overview of '.config('wedplan.business_name').' · '.now()->format('l, F j, Y')">
     <x-slot:actions>
@@ -26,6 +26,31 @@
         </div>
         @if ($actionCount)
             <ul class="divide-y divide-line">
+                @foreach ($voidRequests as $p)
+                    <li class="flex flex-wrap items-center gap-4 px-5 py-3 text-sm">
+                        <span class="grid size-9 shrink-0 place-items-center rounded-full bg-red-50 text-red-600 ring-1 ring-red-200"><x-icon name="cash" class="size-4" /></span>
+                        <div class="min-w-0 flex-1">
+                            <div class="font-medium">{{ $p->voidRequester?->name ?? 'A planner' }} asks to void ₱{{ number_format($p->amount, 2) }} for {{ $p->booking->client_name }}</div>
+                            <div class="text-xs text-stone-500">{{ $p->methodLabel() }} · paid {{ $p->payment_date->format('M j, Y') }}{{ $p->receipt_number ? ' · OR '.$p->receipt_number : '' }} · asked {{ $p->void_requested_at->diffForHumans() }}</div>
+                            <div class="mt-1 text-xs text-stone-700">Reason: “{{ $p->void_request_reason }}”</div>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <form method="POST" action="{{ route('admin.payments.void', $p) }}" data-confirm="Void this ₱{{ number_format($p->amount, 2) }} payment? It stays on record, crossed out, and the couple is told." data-confirm-ok="Void it">
+                                @csrf @method('PATCH')
+                                <button class="btn-danger btn-sm">Void it</button>
+                            </form>
+                            <details class="relative">
+                                <summary class="btn-secondary btn-sm cursor-pointer list-none">Keep it</summary>
+                                <form method="POST" action="{{ route('admin.payments.keep', $p) }}" class="card absolute right-0 z-20 mt-2 w-72 max-w-[calc(100vw-3rem)] space-y-2 p-4">
+                                    @csrf @method('PATCH')
+                                    <label for="keep_note_{{ $p->id }}" class="label">Note to the planner <span class="font-normal text-stone-400">(optional)</span></label>
+                                    <textarea id="keep_note_{{ $p->id }}" name="note" rows="2" maxlength="500" class="input" placeholder="e.g. The receipt shows it was paid."></textarea>
+                                    <button class="btn-primary btn-sm w-full">Keep the payment</button>
+                                </form>
+                            </details>
+                        </div>
+                    </li>
+                @endforeach
                 @foreach ($lockedUsers as $u)
                     <li class="flex flex-wrap items-center gap-4 px-5 py-3 text-sm">
                         <span class="grid size-9 shrink-0 place-items-center rounded-full bg-red-50 text-red-600 ring-1 ring-red-200"><x-icon name="lock" class="size-4" /></span>
@@ -72,7 +97,7 @@
         @else
             <div class="flex items-center gap-3 px-5 py-5 text-sm text-stone-600">
                 <span class="grid size-9 shrink-0 place-items-center rounded-full bg-emerald-50 text-emerald-600 ring-1 ring-emerald-200"><x-icon name="check" class="size-4" /></span>
-                Nothing needs you right now: no locked accounts, every vendor is linked, planners are on track, and WedBot answered every recent question.
+                Nothing needs you right now: no payments to void, no locked accounts, every vendor is linked, planners are on track, and WedBot answered every recent question.
             </div>
         @endif
     </div>
