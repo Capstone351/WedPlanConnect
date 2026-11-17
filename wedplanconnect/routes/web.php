@@ -223,7 +223,5 @@ Route::middleware('auth')->group(function () {
         Route::get('/profile', [Vendor\DashboardController::class, 'profile'])->name('profile');
         Route::patch('/availability', [Vendor\DashboardController::class, 'availability'])->name('availability');
         Route::resource('products', SupplierProductController::class)->except('show');
-        Route::get('/inventory', [Vendor\InventoryController::class, 'index'])->name('inventory');
-        Route::patch('/inventory/{product}', [Vendor\InventoryController::class, 'update'])->name('inventory.update');
     });
 });

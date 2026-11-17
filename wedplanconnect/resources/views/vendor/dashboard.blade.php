@@ -53,7 +53,7 @@
                     <strong>Running low:</strong>
                     {{ $lowStock->map(fn ($p) => $p->name.' ('.($p->unitsLeft() === 0 ? 'out of stock' : $p->unitsLeft().' left').')')->join(', ') }}
                 </span>
-                <a href="{{ route('vendor.inventory') }}" class="btn-secondary btn-sm">Update inventory</a>
+                <a href="{{ route('vendor.products.index') }}" class="btn-secondary btn-sm">Update stock</a>
             </div>
         @endif
 

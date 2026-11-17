@@ -35,7 +35,6 @@
             'My business' => [
                 ['Assigned Bookings', 'vendor.bookings', 'vendor.bookings*', 'calendar'],
                 ['My Products', 'vendor.products.index', 'vendor.products.*', 'cube'],
-                ['My Inventory', 'vendor.inventory', 'vendor.inventory*', 'clipboard'],
                 ['My Profile', 'vendor.profile', 'vendor.profile', 'store'],
             ],
         ],
