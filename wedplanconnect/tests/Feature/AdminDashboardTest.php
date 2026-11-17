@@ -42,12 +42,18 @@ class AdminDashboardTest extends TestCase
         $this->assertTrue($task->fresh()->is_overdue);
         $this->assertSame(1, Task::overdue()->count());
 
-        $view = $this->actingAs($admin)->get('/admin')->assertOk()->assertSee('Past Couple');
+        $view = $this->actingAs($admin)->get('/admin')->assertOk()->assertSee($planner->name.' is falling behind');
 
         $this->assertSame(1, $view->viewData('upcomingCounts')->sum());           // past & cancelled excluded
         $this->assertSame(40000.0, $view->viewData('collected'));
         $this->assertSame(110000.0, $view->viewData('outstanding'));              // 60k + 50k, cancelled excluded
         $this->assertSame(1, $view->viewData('overdueCount'));
         $this->assertTrue($view->viewData('awaitingClosure')->contains($past));
+        $this->assertSame(27, $view->viewData('collectionRate'));                 // 40k of 150k still owed or paid
+
+        $this->assertSame(40000.0, $view->viewData('revenueTrend')->sum('value'));
+        $workload = $view->viewData('planners')->firstWhere('id', $planner->id);
+        $this->assertSame(1, $workload->upcoming_count);
+        $this->assertSame(1, $workload->overdue_tasks_count);
     }
 }

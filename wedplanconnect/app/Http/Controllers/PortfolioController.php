@@ -12,7 +12,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 /**
- * Staff management (admin and planners) of the public "Our Weddings" portfolio.
+ * Wedding Planners' management of the public "Our Weddings" portfolio.
  * Photos are stored outside the web root and served only for published entries.
  */
 class PortfolioController extends Controller
@@ -124,7 +124,7 @@ class PortfolioController extends Controller
             'photos.*.image' => 'Photos must be JPG, PNG, or WebP images.',
         ]);
 
-        // Only the wedding's own planner (or the admin) can feature it; keeping an existing link is always allowed.
+        // Only the wedding's own planner can feature it; keeping an existing link is always allowed.
         if (! empty($data['booking_id']) && (int) $data['booking_id'] !== $entry?->booking_id) {
             $this->authorizeBooking(Booking::findOrFail($data['booking_id']));
         }

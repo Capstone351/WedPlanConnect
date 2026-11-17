@@ -510,3 +510,17 @@ document.querySelectorAll('table.table').forEach((table) => {
         });
     });
 });
+
+// Add/Edit user: show only the fields for the chosen role, and for vendors either a new or an existing supplier business.
+const roleSelect = document.querySelector('[data-role-select]');
+if (roleSelect) {
+    const form = roleSelect.form;
+    const sync = () => {
+        form.querySelectorAll('[data-role-only]').forEach((el) => (el.hidden = el.dataset.roleOnly !== roleSelect.value));
+        const mode = form.querySelector('[data-supplier-mode]:checked')?.value;
+        form.querySelectorAll('[data-supplier-only]').forEach((el) => (el.hidden = el.dataset.supplierOnly !== mode));
+    };
+    form.addEventListener('change', (event) => {
+        if (event.target.matches('[data-role-select], [data-supplier-mode]')) sync();
+    });
+}

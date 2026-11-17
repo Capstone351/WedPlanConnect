@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Models\Booking;
 use App\Models\Supplier;
 use App\Models\User;
-use App\Notifications\BookingAssigned;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -44,25 +43,6 @@ class BookingTest extends TestCase
         $this->assertDatabaseHas('bookings', ['planner_id' => $this->planner->id, 'status' => 'pending', 'venue' => 'Casa Gorordo Museum']);
     }
 
-    public function test_planner_is_notified_when_the_admin_gives_them_a_booking(): void
-    {
-        $admin = User::factory()->admin()->create(['name' => 'FMT Admin']);
-
-        $this->actingAs($admin)->post('/bookings', $this->payload(['planner_id' => $this->planner->id]))->assertSessionHasNoErrors();
-        $booking = Booking::sole();
-        $this->assertSame(BookingAssigned::class, $this->planner->notifications()->sole()->type);
-        $this->assertStringContainsString('by FMT Admin', $this->planner->notifications()->sole()->data['body']);
-
-        // Moving it to another planner tells the new one.
-        $other = User::factory()->planner()->create();
-        $this->actingAs($admin)->put("/bookings/{$booking->id}", $this->payload(['planner_id' => $other->id]))->assertSessionHasNoErrors();
-        $this->assertSame(BookingAssigned::class, $other->notifications()->sole()->type);
-
-        // A planner creating their own booking isn't notified about it.
-        $this->actingAs($this->planner)->post('/bookings', $this->payload(['event_date' => now()->addMonths(4)->toDateString()]))->assertSessionHasNoErrors();
-        $this->assertSame(1, $this->planner->notifications()->count());
-    }
-
     public function test_double_booking_same_date_and_venue_is_rejected(): void
     {
         $this->actingAs($this->planner)->post('/bookings', $this->payload());
@@ -87,10 +67,6 @@ class BookingTest extends TestCase
         $this->actingAs($this->planner)->post('/bookings', $this->payload());
         $this->actingAs($this->planner)->post('/bookings', $this->payload(['venue' => 'Marco Polo Plaza']))->assertSessionHasErrors('event_date');
         $this->actingAs($this->planner)->post('/bookings', $this->payload(['venue' => null]))->assertSessionHasErrors('event_date');
-
-        // An admin can't assign them a second wedding that day either.
-        $this->actingAs(User::factory()->admin()->create())
-            ->post('/bookings', $this->payload(['venue' => null, 'planner_id' => $this->planner->id]))->assertSessionHasErrors('event_date');
 
         $this->assertSame(1, Booking::count());
     }
@@ -139,7 +115,6 @@ class BookingTest extends TestCase
         $other = Booking::factory()->create();
 
         $this->actingAs($this->planner)->get("/bookings/{$other->id}")->assertForbidden();
-        $this->actingAs(User::factory()->admin()->create())->get("/bookings/{$other->id}")->assertOk();
     }
 
     public function test_suppliers_can_be_assigned_and_status_updated(): void
