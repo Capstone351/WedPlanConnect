@@ -20,7 +20,7 @@
     // Grouped navigation: section label => [label, route, active pattern, icon, optional count badge]
     $nav = match ($user->role) {
         'admin' => [
-            '' => [['Dashboard', 'admin.dashboard', 'admin.dashboard', 'home'], $notifications],
+            '' => [['Dashboard', 'admin.dashboard', 'admin.dashboard', 'home'], $notifications, ['Reports', 'reports.index', 'reports.*', 'chart']],
             'Administration' => [
                 ['Users', 'admin.users.index', 'admin.users.*', 'users'],
                 ['Chatbot FAQ', 'admin.faqs.index', 'admin.faqs.*', 'chat'],

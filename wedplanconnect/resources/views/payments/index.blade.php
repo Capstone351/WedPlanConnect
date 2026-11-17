@@ -103,23 +103,25 @@
                     </div>
                     <ul class="divide-y divide-stone-100 text-sm">
                         @forelse ($selected->payments as $p)
-                            <li class="flex items-center justify-between gap-3 px-5 py-3">
-                                <div>
+                            <li class="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
+                                <div class="min-w-0 flex-1">
                                     <div class="font-medium tabular-nums">₱{{ number_format($p->amount, 2) }} <span class="text-xs font-normal text-stone-500">· {{ $p->methodLabel() }}</span></div>
                                     <div class="text-xs text-stone-500">{{ $p->payment_date->format('M j, Y') }}{{ $p->receipt_number ? ' · OR '.$p->receipt_number : '' }}{{ $p->notes ? ' · '.$p->notes : '' }}{{ $p->recorder ? ' · Recorded by '.$p->recorder->name : '' }}</div>
                                 </div>
-                                @if (auth()->user()->role === 'admin')
-                                <details class="relative" @if ($errors->has('void_reason') && old('void_payment') == $p->id) open @endif>
-                                    <summary class="btn-icon cursor-pointer list-none" title="Void payment" aria-label="Void payment"><x-icon name="trash" class="size-4" /></summary>
-                                    <form method="POST" action="{{ route('payments.destroy', $p) }}" class="card absolute right-0 z-20 mt-2 w-72 space-y-2 p-4">
-                                        @csrf @method('DELETE')
-                                        <input type="hidden" name="void_payment" value="{{ $p->id }}">
-                                        <label for="void_reason_{{ $p->id }}" class="label">Why void this payment? <span class="font-normal text-stone-400">(the couple will see this)</span></label>
-                                        <textarea id="void_reason_{{ $p->id }}" name="void_reason" rows="2" maxlength="500" required class="input" placeholder="e.g. Recorded twice by mistake."></textarea>
-                                        @if (old('void_payment') == $p->id)@error('void_reason')<p class="error-text">{{ $message }}</p>@enderror @endif
-                                        <button class="btn-danger btn-sm w-full">Void payment</button>
-                                    </form>
-                                </details>
+                                @if ($p->hasVoidRequest())
+                                    <span class="badge-amber shrink-0" title="Reason: {{ $p->void_request_reason }}">Void requested · waiting for admin</span>
+                                @else
+                                    <details class="relative shrink-0" @if ($errors->has('void_reason') && old('void_payment') == $p->id) open @endif>
+                                        <summary class="btn-secondary btn-sm cursor-pointer list-none">Ask admin to void</summary>
+                                        <form method="POST" action="{{ route('payments.void-request', $p) }}" class="card absolute right-0 z-20 mt-2 w-72 max-w-[calc(100vw-3rem)] space-y-2 p-4">
+                                            @csrf
+                                            <input type="hidden" name="void_payment" value="{{ $p->id }}">
+                                            <label for="void_reason_{{ $p->id }}" class="label">Why should this payment be voided? <span class="font-normal text-stone-400">(the admin decides; the couple sees it if voided)</span></label>
+                                            <textarea id="void_reason_{{ $p->id }}" name="void_reason" rows="2" maxlength="500" required class="input" placeholder="e.g. Recorded twice by mistake."></textarea>
+                                            @if (old('void_payment') == $p->id)@error('void_reason')<p class="error-text">{{ $message }}</p>@enderror @endif
+                                            <button class="btn-danger btn-sm w-full">Send to admin</button>
+                                        </form>
+                                    </details>
                                 @endif
                             </li>
                         @empty
@@ -132,8 +134,8 @@
                             </li>
                         @endforeach
                     </ul>
-                    @if (auth()->user()->role !== 'admin' && $selected->payments->isNotEmpty())
-                        <p class="border-t border-stone-100 px-5 py-3 text-xs text-stone-500">Recorded payments can't be changed or removed. Only the admin can void a payment that was recorded by mistake.</p>
+                    @if ($selected->payments->isNotEmpty())
+                        <p class="border-t border-stone-100 px-5 py-3 text-xs text-stone-500">Recorded payments can't be changed or removed. If one was recorded by mistake, ask the admin to void it.</p>
                     @endif
                 </div>
             @endif

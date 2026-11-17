@@ -4,12 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\Booking;
 use App\Models\Payment;
+use App\Models\User;
 use App\Notifications\PaymentRecorded;
-use App\Notifications\PaymentVoided;
+use App\Notifications\PaymentVoidRequested;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -71,21 +73,31 @@ class PaymentController extends Controller
             ->with('status', 'Payment of ₱'.number_format($data['amount'], 2).' recorded. Remaining balance: ₱'.number_format($booking->balance(), 2).'.');
     }
 
-    /** Voids a payment (kept on record, crossed out) with a reason, and tells the couple. */
-    public function destroy(Request $request, Payment $payment): RedirectResponse
+    /**
+     * Planners can't remove money they recorded. They ask the admin to void a payment, with a reason;
+     * the admin approves or keeps it from their action centre.
+     */
+    public function requestVoid(Request $request, Payment $payment): RedirectResponse
     {
         $this->authorizeBooking($payment->booking);
 
         $data = $request->validate(['void_reason' => ['required', 'string', 'max:500']], [
-            'void_reason.required' => 'Please give a reason for voiding this payment. The couple will see it.',
+            'void_reason.required' => 'Please say why this payment should be voided. The admin and, if it is voided, the couple will see it.',
         ]);
 
-        $payment->forceFill(['voided_by' => $request->user()->id, 'void_reason' => trim($data['void_reason'])])->save();
-        $payment->delete();
+        if ($payment->hasVoidRequest()) {
+            return back()->withErrors(['void_reason' => 'You already asked the admin to void this payment. Please wait for their answer.']);
+        }
 
-        $payment->booking->client?->notify(new PaymentVoided($payment, $request->user()->name));
+        $payment->forceFill([
+            'void_requested_by' => $request->user()->id,
+            'void_requested_at' => now(),
+            'void_request_reason' => trim($data['void_reason']),
+        ])->save();
 
-        return back()->with('status', 'Payment voided; balance recalculated. The couple has been notified.');
+        Notification::send(User::where('role', 'admin')->get(), new PaymentVoidRequested($payment->load('booking', 'voidRequester')));
+
+        return back()->with('status', 'Request sent. The admin will void the payment or keep it, and you will be notified.');
     }
 
     /** PDF contract / payment summary for a booking. */

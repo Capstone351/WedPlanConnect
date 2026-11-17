@@ -83,9 +83,14 @@ class AuthenticationTest extends TestCase
         $admin = User::factory()->admin()->create();
         $booking = Booking::factory()->create();
 
-        foreach (['/planner', '/bookings', "/bookings/{$booking->id}", '/suppliers', '/tasks', '/inventory', '/payments', '/meetings', '/reports', '/portfolio', '/my/catalog'] as $url) {
+        foreach (['/planner', '/bookings', "/bookings/{$booking->id}", '/suppliers', '/tasks', '/inventory', '/payments', '/meetings', '/portfolio', '/my/catalog'] as $url) {
             $this->actingAs($admin)->get($url)->assertForbidden();
         }
+
+        // Reports stay open to the admin (read-only), including the admin-only strategic ones.
+        $this->actingAs($admin)->get('/reports')->assertOk();
+        $this->actingAs($admin)->get('/reports/booking-status')->assertOk();
+        $this->actingAs($admin)->get('/admin')->assertSee('href="'.route('reports.index').'"', false);
 
         $this->actingAs($admin)->get('/admin')->assertOk()->assertDontSee('href="'.route('bookings.index').'"', false);
     }
