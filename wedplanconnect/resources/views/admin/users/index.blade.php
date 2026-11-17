@@ -1,6 +1,8 @@
 <x-layouts.app title="User Management" heading="User Management" subheading="Create, edit, deactivate, and audit accounts for every role.">
     <x-slot:actions>
-        <a href="{{ route('admin.users.create') }}" class="btn-primary"><x-icon name="plus" class="size-4" /> Add New User</a>
+        <a href="{{ route('admin.users.create') }}" class="btn-secondary"><x-icon name="plus" class="size-4" /> Other account</a>
+        <a href="{{ route('admin.users.create', ['role' => 'vendor']) }}" class="btn-secondary"><x-icon name="store" class="size-4" /> New supplier account</a>
+        <a href="{{ route('admin.users.create', ['role' => 'planner']) }}" class="btn-primary"><x-icon name="plus" class="size-4" /> New planner</a>
     </x-slot:actions>
 
     <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

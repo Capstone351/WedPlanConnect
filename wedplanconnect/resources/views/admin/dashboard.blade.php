@@ -10,7 +10,8 @@
 <x-layouts.app title="Admin Dashboard" :heading="'Good day, '.strtok(auth()->user()->name, ' ').'!'" :subheading="'Business overview of '.config('wedplan.business_name').' · '.now()->format('l, F j, Y')">
     <x-slot:actions>
         <a href="{{ route('admin.faqs.index') }}" class="btn-secondary"><x-icon name="chat" class="size-4" /> Chatbot FAQ</a>
-        <a href="{{ route('admin.users.create') }}" class="btn-primary"><x-icon name="plus" class="size-4" /> New user</a>
+        <a href="{{ route('admin.users.create', ['role' => 'vendor']) }}" class="btn-secondary"><x-icon name="store" class="size-4" /> New supplier account</a>
+        <a href="{{ route('admin.users.create', ['role' => 'planner']) }}" class="btn-primary"><x-icon name="plus" class="size-4" /> New planner</a>
     </x-slot:actions>
 
     {{-- Action centre: what only the Admin can resolve, each with its fix one click away. --}}
@@ -240,7 +241,7 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="4" class="py-8 text-center text-stone-500">No Wedding Planner accounts yet. <a href="{{ route('admin.users.create') }}" class="link">Add one</a>.</td></tr>
+                            <tr><td colspan="4" class="py-8 text-center text-stone-500">No Wedding Planner accounts yet. <a href="{{ route('admin.users.create', ['role' => 'planner']) }}" class="link">Add one</a>.</td></tr>
                         @endforelse
                     </tbody>
                 </table>

@@ -72,7 +72,7 @@ class DashboardController extends Controller
                 'faqCount' => Faq::count(),
             ],
             'setup' => array_filter([
-                ['Add your Wedding Planner accounts', User::where('role', 'planner')->exists(), route('admin.users.create')],
+                ['Add your Wedding Planner accounts', User::where('role', 'planner')->exists(), route('admin.users.create', ['role' => 'planner'])],
                 ['Enter FMT’s real FAQ answers for WedBot', Faq::exists(), route('admin.faqs.create')],
             ], fn ($step) => ! $step[1]),
         ]);
