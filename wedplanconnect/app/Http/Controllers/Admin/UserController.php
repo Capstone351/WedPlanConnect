@@ -37,9 +37,12 @@ class UserController extends Controller
         return view('admin.users.index', compact('users', 'counts'));
     }
 
-    public function create(): View
+    /** ?role=planner or ?role=vendor opens the form with that role already chosen. */
+    public function create(Request $request): View
     {
-        return view('admin.users.form', ['user' => new User, 'suppliers' => $this->linkableSuppliers()]);
+        $user = new User(['role' => in_array($request->query('role'), array_keys(User::ROLES), true) ? $request->query('role') : 'planner']);
+
+        return view('admin.users.form', ['user' => $user, 'suppliers' => $this->linkableSuppliers()]);
     }
 
     public function store(Request $request): RedirectResponse
@@ -49,7 +52,7 @@ class UserController extends Controller
         $user = User::create($data);
         // The administrator creates these accounts directly, so the email doesn't need confirming.
         $user->markEmailAsVerified();
-        $this->linkSupplier($user, $request->integer('supplier_id') ?: null);
+        $this->linkSupplier($user, $this->supplierIdFor($request, $user));
 
         return redirect()->route('admin.users.index')->with('status', "Account for {$user->name} created.");
     }
@@ -72,7 +75,7 @@ class UserController extends Controller
         }
 
         $user->update($data);
-        $this->linkSupplier($user, $request->integer('supplier_id') ?: null);
+        $this->linkSupplier($user, $this->supplierIdFor($request, $user));
 
         return redirect()->route('admin.users.index')->with('status', "Account for {$user->name} updated.");
     }
@@ -112,8 +115,37 @@ class UserController extends Controller
             'role' => ['required', Rule::in(array_keys(User::ROLES))],
             'password' => [$user ? 'nullable' : 'required', 'confirmed', Password::min(8)->letters()->numbers()],
             'supplier_id' => ['nullable', 'exists:suppliers,id'],
+            'supplier_mode' => ['nullable', Rule::in(['existing', 'new'])],
+            'new_supplier_name' => ['exclude_unless:supplier_mode,new', 'exclude_unless:role,vendor', 'required', 'string', 'max:150'],
+            'new_supplier_category' => ['exclude_unless:supplier_mode,new', 'exclude_unless:role,vendor', 'required', Rule::in(Supplier::CATEGORIES)],
+            'new_supplier_phone' => ['exclude_unless:supplier_mode,new', 'exclude_unless:role,vendor', 'required', 'string', 'max:20', 'regex:/^[0-9+\-\s()]{7,20}$/'],
             'bio' => ['nullable', 'string', 'max:500'],
-        ]), 'supplier_id');
+        ], [
+            'new_supplier_name.required' => 'Enter the supplier’s business name.',
+            'new_supplier_category.required' => 'Choose the supplier’s category.',
+            'new_supplier_phone.required' => 'Enter the supplier’s phone number.',
+            'new_supplier_phone.regex' => 'Enter a valid phone number.',
+        ]), ['supplier_id', 'supplier_mode', 'new_supplier_name', 'new_supplier_category', 'new_supplier_phone']);
+    }
+
+    /** The supplier profile to link a vendor to: a new catalog entry made from the form, or an existing one. */
+    private function supplierIdFor(Request $request, User $user): ?int
+    {
+        if ($user->role !== 'vendor') {
+            return null;
+        }
+
+        if ($request->input('supplier_mode') === 'new') {
+            return Supplier::create([
+                'name' => $request->string('new_supplier_name')->trim()->toString(),
+                'category' => $request->input('new_supplier_category'),
+                'phone' => $request->string('new_supplier_phone')->trim()->toString(),
+                'email' => $user->email,
+                'availability' => 'available',
+            ])->id;
+        }
+
+        return $request->integer('supplier_id') ?: null;
     }
 
     private function linkableSuppliers(?User $user = null)

@@ -21,7 +21,8 @@ return Application::configure(basePath: dirname(__DIR__))
         // First, so debug/cookie settings apply before the session starts or any error is shown.
         $middleware->prepend(SecureHeaders::class);
         // The ngrok agent runs on this PC and forwards public HTTPS traffic, so trust its forwarded headers.
-        $middleware->trustProxies(at: ['127.0.0.1', '::1']);
+        // On a host whose own proxy handles HTTPS (e.g. Render), TRUSTED_PROXIES=* trusts that proxy instead.
+        $middleware->trustProxies(at: env('TRUSTED_PROXIES') === '*' ? '*' : ['127.0.0.1', '::1']);
         $middleware->redirectGuestsTo(fn () => route('login'));
         $middleware->redirectUsersTo(fn (Request $request) => route($request->user()->dashboardRoute()));
     })

@@ -35,7 +35,7 @@ class WeddingGalleryController extends Controller
     public function photo(PortfolioPhoto $photo): StreamedResponse
     {
         $entry = $photo->entry;
-        $staff = auth()->check() && auth()->user()->hasRole('admin', 'planner');
+        $staff = auth()->check() && auth()->user()->hasRole('planner');
 
         abort_unless($staff || ($entry && ! $entry->trashed() && $entry->is_published && $entry->consent_confirmed), 404);
         abort_unless(Storage::disk(PortfolioController::DISK)->exists($photo->path), 404);
