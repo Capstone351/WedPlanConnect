@@ -18,7 +18,7 @@ class PackageTasksTest extends TestCase
         $client = User::factory()->create(['phone' => '09171234567']);
         $client->forceFill(['preferred_planner_id' => $planner->id, 'wedding_date' => today()->addYear(), 'wedding_package' => 'Package A'])->save();
 
-        $this->actingAs($client)->post('/my/booking-request', ['venue' => 'Radisson Blu Hotel Cebu, Cebu City'])->assertSessionHasNoErrors();
+        $this->actingAs($client)->post('/my/booking-request', ['venue' => 'Radisson Blu Hotel Cebu'])->assertSessionHasNoErrors();
 
         // A request the planner hasn't accepted yet doesn't fill their to-do list.
         $booking = Booking::sole();

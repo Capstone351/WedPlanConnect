@@ -56,11 +56,11 @@ class DemoSeeder extends Seeder
 
         $bookings = [
             // [client idx, planner, days from today, venue, package, amount, status]
-            [0, $planner, 41, 'Casa Gorordo Museum, Cebu City', 'Garden Romance', 185000, 'confirmed'],
+            [0, $planner, 41, 'Casa Gorordo Museum', 'Garden Romance', 185000, 'confirmed'],
             [1, $planner, 18, 'Marco Polo Plaza Cebu', 'Grand Ballroom', 260000, 'confirmed'],
-            [2, $planner, 75, 'Shangri-La Mactan Resort', 'Beach Wedding', 320000, 'pending'],
-            [3, $planner2, 9, 'Casino Español de Cebu, Cebu City', 'Classic Elegance', 120000, 'confirmed'],
-            [4, $planner2, 120, 'Radisson Blu Cebu', 'Rustic Charm', 150000, 'pending'],
+            [2, $planner, 75, 'Shangri-La Mactan', 'Beach Wedding', 320000, 'pending'],
+            [3, $planner2, 9, 'Casino Español de Cebu', 'Classic Elegance', 120000, 'confirmed'],
+            [4, $planner2, 120, 'Radisson Blu Hotel Cebu', 'Rustic Charm', 150000, 'pending'],
             [5, $planner, -30, 'Waterfront Cebu City Hotel', 'Classic Elegance', 140000, 'completed'],
         ];
 

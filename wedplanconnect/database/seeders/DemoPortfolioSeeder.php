@@ -33,7 +33,7 @@ class DemoPortfolioSeeder extends Seeder
             [
                 'title' => 'Isabel & Marco',
                 'event_date' => '2026-02-14',
-                'venue' => 'Casa Gorordo Museum, Cebu City',
+                'venue' => 'Casa Gorordo Museum',
                 'theme' => 'Garden Romance',
                 'summary' => "A Valentine's Day garden wedding in blush and sage among heritage stone walls.",
                 'story' => "Under the old acacia trees of Casa Gorordo, we created an aisle of blush peonies and eucalyptus garlands.\n\nThe reception tables mixed wooden chargers with crystal glassware for a romantic, relaxed garden feel.",
@@ -43,7 +43,7 @@ class DemoPortfolioSeeder extends Seeder
             [
                 'title' => 'Trisha & Jun',
                 'event_date' => '2025-12-06',
-                'venue' => 'Shangri-La Mactan Resort',
+                'venue' => 'Shangri-La Mactan',
                 'theme' => 'Beach Wedding',
                 'summary' => 'A sunset ceremony by the sea with tropical blooms and lantern-lit dinner tables.',
                 'story' => 'We built a bamboo arch draped in white chiffon right on the sand, with tropical florals in coral and cream. As the sun set, lanterns lined the path to a seaside dinner under the stars.',
@@ -58,14 +58,14 @@ class DemoPortfolioSeeder extends Seeder
             [
                 'title' => 'Lea & Paolo',
                 'event_date' => '2025-06-28',
-                'venue' => 'Radisson Blu Cebu',
+                'venue' => 'Radisson Blu Hotel Cebu',
                 'theme' => 'Rustic Charm',
                 'summary' => 'Wood, greenery, and Edison lights for a warm, laid-back celebration with friends.',
             ],
             [
                 'title' => 'Mika & Ron',
                 'event_date' => '2025-04-12',
-                'venue' => 'Montebello Villa Hotel, Banilad, Cebu City',
+                'venue' => 'Montebello Villa Hotel',
                 'theme' => 'Intimate Ceremony',
                 'summary' => 'An intimate church ceremony with white florals and a candlelit family dinner.',
             ],
