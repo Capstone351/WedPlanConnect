@@ -39,7 +39,7 @@ class DemoPlannerChoiceSeeder extends Seeder
             'preferred_planner_id' => $joshua->id,
             'wedding_date' => today()->addMonths(8)->next('Saturday')->toDateString(),
             'wedding_date_alt' => today()->addMonths(8)->next('Saturday')->addWeek()->toDateString(),
-            'wedding_venue' => 'Shangri-La Mactan Resort',
+            'wedding_venue' => 'Shangri-La Mactan',
         ])->save();
 
         foreach (['Bethoven Photography', 'Scarlet Lights and Sounds Mobile'] as $name) {
