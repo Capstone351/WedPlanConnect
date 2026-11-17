@@ -36,31 +36,14 @@ class VendorInventoryTest extends TestCase
         $this->assertSame(['4 left', 'green'], $product->stockStatus());
     }
 
-    public function test_vendor_updates_stock_and_availability_from_the_inventory_page(): void
+    public function test_vendors_manage_stock_from_my_products_not_a_separate_inventory_page(): void
     {
         [$vendor, , $product] = $this->vendorWithProduct(10);
 
-        $this->actingAs($vendor)->get('/vendor/inventory')->assertOk()->assertSee('Centerpiece')->assertSee('10 left');
-
-        $this->actingAs($vendor)->patch("/vendor/inventory/{$product->id}", ['stock_quantity' => 2, 'low_stock_threshold' => 3])
-            ->assertSessionHasNoErrors();
-
-        $product->refresh();
-        $this->assertSame(2, $product->stock_quantity);
-        $this->assertFalse($product->is_available);
-        $this->assertSame(['Low stock: 2 left', 'amber'], $product->stockStatus());
-
-        $this->actingAs($vendor)->patch("/vendor/inventory/{$product->id}", ['stock_quantity' => -1, 'low_stock_threshold' => 3])
-            ->assertSessionHasErrors('stock_quantity');
-    }
-
-    public function test_vendor_cannot_update_another_suppliers_inventory(): void
-    {
-        [$vendor] = $this->vendorWithProduct();
-        [, , $otherProduct] = $this->vendorWithProduct();
-
-        $this->actingAs($vendor)->patch("/vendor/inventory/{$otherProduct->id}", ['stock_quantity' => 0, 'low_stock_threshold' => 1])
-            ->assertNotFound();
+        $this->actingAs($vendor)->get('/vendor/inventory')->assertNotFound();
+        $this->actingAs($vendor)->get('/vendor')->assertOk()->assertDontSee('My Inventory');
+        $this->actingAs($vendor)->get('/vendor/products')->assertOk()->assertSee('Centerpiece')->assertSee('of 10 in stock');
+        $this->actingAs($vendor)->get("/vendor/products/{$product->id}/edit")->assertOk()->assertSee('id="stock_quantity"', false);
     }
 
     public function test_planner_cannot_order_more_than_is_left(): void
