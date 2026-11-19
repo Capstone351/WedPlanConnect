@@ -60,7 +60,6 @@
                         <p class="mt-1 flex-1 text-sm text-stone-600">{{ $description }}</p>
                         <div class="mt-4 flex gap-2">
                             <a href="{{ route('reports.show', $key) }}" class="btn-primary btn-sm">Generate</a>
-                            <a href="{{ route('reports.pdf', $key) }}" class="btn-secondary btn-sm"><x-icon name="download" class="size-4" /> PDF</a>
                         </div>
                     </div>
                 @endforeach
