@@ -203,7 +203,9 @@ class OperationsTest extends TestCase
         Booking::factory()->create(['planner_id' => $planner->id]);
 
         $this->actingAs($planner)->get('/reports/booking-status')->assertForbidden();
-        $this->actingAs($planner)->get('/reports/daily-operations')->assertOk();
+        // The PDF is only offered after the report is generated, not from the reports list.
+        $this->actingAs($planner)->get('/reports')->assertOk()->assertSee(route('reports.show', 'daily-operations'))->assertDontSee('/pdf', false);
+        $this->actingAs($planner)->get('/reports/daily-operations')->assertOk()->assertSee(route('reports.pdf', 'daily-operations'));
         $this->actingAs($planner)->get('/reports/daily-operations/pdf')->assertOk()->assertHeader('content-type', 'application/pdf');
     }
 
