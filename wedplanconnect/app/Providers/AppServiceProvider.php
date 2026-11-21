@@ -5,7 +5,10 @@ namespace App\Providers;
 use App\Models\OutboxMessage;
 use Illuminate\Mail\Events\MessageSent;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\ServiceProvider;
+use Symfony\Component\Mailer\Bridge\Brevo\Transport\BrevoTransportFactory;
+use Symfony\Component\Mailer\Transport\Dsn;
 use Symfony\Component\Mime\Address;
 
 class AppServiceProvider extends ServiceProvider
@@ -23,6 +26,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // MAIL_MAILER=brevo sends through Brevo's API using BREVO_API_KEY.
+        Mail::extend('brevo', fn () => (new BrevoTransportFactory)->create(
+            new Dsn('brevo+api', 'default', (string) config('services.brevo.key'))
+        ));
+
         // Test mode: keep a readable copy of each email (e.g. QR one-time PINs, password links)
         // for the staff Email outbox, since nothing is actually delivered.
         Event::listen(MessageSent::class, function (MessageSent $event) {
