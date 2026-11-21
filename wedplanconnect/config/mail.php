@@ -37,6 +37,11 @@ return [
 
     'mailers' => [
 
+        // Brevo's HTTPS API: works on hosts that block outgoing SMTP ports (e.g. Render's free plan).
+        'brevo' => [
+            'transport' => 'brevo',
+        ],
+
         'smtp' => [
             'transport' => 'smtp',
             'scheme' => env('MAIL_SCHEME'),

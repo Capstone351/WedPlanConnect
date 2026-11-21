@@ -35,8 +35,15 @@ services:
         value: database
       - key: QUEUE_CONNECTION
         value: database
+      # log = test mode (Admin's Email outbox); brevo = real emails through Brevo's API.
       - key: MAIL_MAILER
-        value: log
+        sync: false
+      - key: BREVO_API_KEY
+        sync: false
+      - key: MAIL_FROM_ADDRESS
+        sync: false
+      - key: MAIL_FROM_NAME
+        value: FMT Weddings & Events
       - key: DB_CONNECTION
         value: mysql
       - key: DB_HOST
