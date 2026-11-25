@@ -30,7 +30,7 @@ class DashboardController extends Controller
 
         $chatThisMonth = ChatbotSession::where('created_at', '>=', now()->startOfMonth());
 
-        $planners = User::where('role', 'planner')
+        $planners = User::where('role', 'planner')->approved()
             ->withCount([
                 'plannedBookings as upcoming_count' => fn ($q) => $q->upcoming(),
                 'plannedBookings as unclosed_count' => fn ($q) => $q->awaitingClosure(),
@@ -57,10 +57,11 @@ class DashboardController extends Controller
             'awaitingClosure' => Booking::awaitingClosure()->with('planner')->orderBy('event_date')->get(),
             'planners' => $planners,
             // The action centre: things only the Admin can resolve.
+            'pendingSignups' => User::awaitingApproval()->oldest()->get(),
             'plannersToRemind' => $planners->filter(fn ($p) => $p->overdue_tasks_count || $p->unclosed_count)->values(),
             'lockedUsers' => User::where('locked_until', '>', now())->orderBy('locked_until')->get(),
             'voidRequests' => Payment::voidRequested()->with('booking', 'voidRequester')->orderBy('void_requested_at')->get(),
-            'unlinkedVendors' => User::where('role', 'vendor')->whereDoesntHave('supplierProfile')->orderBy('name')->get(),
+            'unlinkedVendors' => User::where('role', 'vendor')->approved()->whereDoesntHave('supplierProfile')->orderBy('name')->get(),
             'unansweredQuestions' => $this->unansweredQuestions(),
             'overdueTasks' => Task::overdue()->with('booking', 'assignee')->orderBy('due_date')->limit(5)->get(),
             'overdueCount' => Task::overdue()->count(),

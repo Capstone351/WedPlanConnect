@@ -19,7 +19,6 @@ class AdminCreatesAccountsTest extends TestCase
     {
         return $overrides + [
             'name' => 'Ana Reyes', 'email' => 'ana@example.com', 'role' => 'planner',
-            'password' => 'Secret123', 'password_confirmation' => 'Secret123',
         ];
     }
 
@@ -33,18 +32,15 @@ class AdminCreatesAccountsTest extends TestCase
             ->assertSee('Add Supplier Account')->assertSee('<option value="vendor" selected', false)->assertSee('Create a new supplier business');
     }
 
-    public function test_admin_creates_a_planner_who_can_log_in(): void
+    public function test_admin_creates_a_planner(): void
     {
         $this->actingAs(User::factory()->admin()->create())
             ->post('/admin/users', $this->account(['bio' => 'Garden weddings in Cebu.']))->assertRedirect('/admin/users');
 
         $planner = User::where('email', 'ana@example.com')->sole();
         $this->assertSame('planner', $planner->role);
+        $this->assertSame('Garden weddings in Cebu.', $planner->bio);
         $this->assertTrue($planner->hasVerifiedEmail());
-
-        $this->post('/logout');
-        $this->post('/login', ['email' => 'ana@example.com', 'password' => 'Secret123'])->assertRedirect();
-        $this->assertAuthenticatedAs($planner);
     }
 
     public function test_admin_creates_a_supplier_account_with_a_new_supplier_business(): void

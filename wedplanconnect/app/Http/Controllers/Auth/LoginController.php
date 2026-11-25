@@ -50,6 +50,10 @@ class LoginController extends Controller
             throw ValidationException::withMessages(['email' => 'This account has been deactivated. Please contact the administrator.']);
         }
 
+        if ($user->awaiting_approval) {
+            throw ValidationException::withMessages(['email' => "Your {$user->roleLabel()} account is still waiting for the administrator's approval. We'll email you once it's approved."]);
+        }
+
         if ($user->isLocked()) {
             $minutes = (int) ceil(now()->diffInSeconds($user->locked_until) / 60);
             throw ValidationException::withMessages(['email' => "This account is locked for {$minutes} more minute(s) after too many failed attempts. To unlock it now, use \"Forgot password\" to reset your password."]);

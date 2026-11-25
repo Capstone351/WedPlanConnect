@@ -26,4 +26,8 @@
     <p class="mt-8 text-center text-sm text-stone-500">
         Engaged couple without an account? <a href="{{ route('register') }}" class="link">Register here</a>
     </p>
+    <p class="mt-2 text-center text-sm text-stone-500">
+        Wedding Planner or Supplier? <a href="{{ route('register', ['as' => 'planner']) }}" class="link">Sign up as a planner</a>
+        or <a href="{{ route('register', ['as' => 'vendor']) }}" class="link">as a supplier</a>
+    </p>
 </x-layouts.auth>

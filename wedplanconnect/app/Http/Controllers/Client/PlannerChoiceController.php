@@ -22,7 +22,7 @@ class PlannerChoiceController extends Controller
         $booking = $user->clientBookings()->active()->with('planner')->orderBy('event_date')->first();
 
         return view('client.planner', [
-            'planners' => User::where('role', 'planner')
+            'planners' => User::where('role', 'planner')->approved()
                 ->withCount([
                     'plannedBookings as weddings_done' => fn ($q) => $q->where('status', 'completed'),
                     'plannedBookings as weddings_upcoming' => fn ($q) => $q->upcoming(),
@@ -45,7 +45,7 @@ class PlannerChoiceController extends Controller
         }
 
         $data = $request->validate([
-            'planner_id' => ['required', Rule::exists('users', 'id')->where('role', 'planner')->whereNull('deleted_at')],
+            'planner_id' => ['required', Rule::exists('users', 'id')->where('role', 'planner')->where('awaiting_approval', false)->whereNull('deleted_at')],
         ], ['planner_id.required' => 'Please choose a planner.']);
 
         $planner = User::find($data['planner_id']);

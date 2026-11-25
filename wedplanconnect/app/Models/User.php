@@ -5,6 +5,7 @@ namespace App\Models;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -32,10 +33,15 @@ class User extends Authenticatable
 
     public const LOCKOUT_MINUTES = 15;
 
+    /** Roles that may sign up themselves, then wait for the Admin's approval before they can log in. */
+    public const ROLES_NEEDING_APPROVAL = ['planner', 'vendor'];
+
     protected function casts(): array
     {
         return [
             'email_verified_at' => 'datetime',
+            'awaiting_approval' => 'boolean',
+            'pending_supplier' => 'array',
             'locked_until' => 'datetime',
             'last_login_at' => 'datetime',
             'wedding_date' => 'date',
@@ -59,6 +65,17 @@ class User extends Authenticatable
     public function hasRole(string ...$roles): bool
     {
         return in_array($this->role, $roles, true);
+    }
+
+    /** Accounts the Admin has let in: leaves out Wedding Planners and Suppliers whose sign-up is still waiting. */
+    public function scopeApproved(Builder $query): Builder
+    {
+        return $query->where('awaiting_approval', false);
+    }
+
+    public function scopeAwaitingApproval(Builder $query): Builder
+    {
+        return $query->where('awaiting_approval', true);
     }
 
     public function roleLabel(): string
@@ -109,11 +126,15 @@ class User extends Authenticatable
         return $this->locked_until !== null && $this->locked_until->isFuture();
     }
 
-    /** Account state shown in User Management: Active, Locked, or Inactive (soft-deleted). */
+    /** Account state shown in User Management: Active, Pending (sign-up awaiting approval), Locked, or Inactive (soft-deleted). */
     public function accountStatus(): string
     {
         if ($this->trashed()) {
             return 'Inactive';
+        }
+
+        if ($this->awaiting_approval) {
+            return 'Pending';
         }
 
         return $this->isLocked() ? 'Locked' : 'Active';

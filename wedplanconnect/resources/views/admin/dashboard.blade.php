@@ -5,7 +5,7 @@
     $statusTotal = $statusCounts->sum();
     $statusColors = ['pending' => 'bg-amber-400', 'confirmed' => 'bg-emerald-500', 'completed' => 'bg-sky-500', 'cancelled' => 'bg-stone-300'];
     $supplierTotal = $supplierStatuses->sum();
-    $actionCount = $voidRequests->count() + $lockedUsers->count() + $unlinkedVendors->count() + $plannersToRemind->count() + $unansweredQuestions->count();
+    $actionCount = $pendingSignups->count() + $voidRequests->count() + $lockedUsers->count() + $unlinkedVendors->count() + $plannersToRemind->count() + $unansweredQuestions->count();
 @endphp
 <x-layouts.app title="Admin Dashboard" :heading="'Good day, '.strtok(auth()->user()->name, ' ').'!'" :subheading="'Business overview of '.config('wedplan.business_name').' · '.now()->format('l, F j, Y')">
     <x-slot:actions>
@@ -26,6 +26,18 @@
         </div>
         @if ($actionCount)
             <ul class="divide-y divide-line">
+                @foreach ($pendingSignups as $u)
+                    <li class="flex flex-wrap items-center gap-4 px-5 py-3 text-sm">
+                        <span class="grid size-9 shrink-0 place-items-center rounded-full bg-gold-50 text-gold-700 ring-1 ring-gold-300"><x-icon name="{{ $u->role === 'vendor' ? 'store' : 'user' }}" class="size-4" /></span>
+                        <div class="min-w-0 flex-1">
+                            <div class="font-medium">{{ $u->name }} signed up as a {{ $u->roleLabel() }}</div>
+                            <div class="text-xs text-stone-500">
+                                @if ($u->pending_supplier){{ $u->pending_supplier['name'] }} · {{ $u->pending_supplier['category'] }} · @endif{{ $u->email }} · {{ $u->phone }} · {{ $u->created_at->diffForHumans() }}
+                            </div>
+                        </div>
+                        <x-signup-review :user="$u" />
+                    </li>
+                @endforeach
                 @foreach ($voidRequests as $p)
                     <li class="flex flex-wrap items-center gap-4 px-5 py-3 text-sm">
                         <span class="grid size-9 shrink-0 place-items-center rounded-full bg-red-50 text-red-600 ring-1 ring-red-200"><x-icon name="cash" class="size-4" /></span>

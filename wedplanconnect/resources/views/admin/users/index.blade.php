@@ -11,6 +11,33 @@
         @endforeach
     </div>
 
+    @if ($pendingSignups->isNotEmpty())
+        <div class="card mt-6 border-gold-300">
+            <div class="card-header">
+                <h2 class="card-title">Waiting for your approval</h2>
+                <span class="badge-amber">{{ $pendingSignups->count() }} sign-up(s)</span>
+            </div>
+            <ul class="divide-y divide-line">
+                @foreach ($pendingSignups as $u)
+                    <li class="flex flex-wrap items-center gap-4 px-5 py-3 text-sm">
+                        <div class="min-w-0 flex-1">
+                            <div class="font-medium">{{ $u->name }} <span class="badge-brand ml-1">{{ $u->roleLabel() }}</span></div>
+                            <div class="text-xs text-stone-500">{{ $u->email }} · {{ $u->phone }} · signed up {{ $u->created_at->diffForHumans() }}</div>
+                            @if ($u->pending_supplier)
+                                <div class="mt-1 text-xs text-stone-700">Business: <strong>{{ $u->pending_supplier['name'] }}</strong> · {{ $u->pending_supplier['category'] }}</div>
+                            @endif
+                            @if ($u->bio)
+                                <div class="mt-1 text-xs text-stone-700">“{{ $u->bio }}”</div>
+                            @endif
+                        </div>
+                        <x-signup-review :user="$u" />
+                    </li>
+                @endforeach
+            </ul>
+            <p class="border-t border-line px-5 py-3 text-xs text-stone-500">They can't log in until approved. Approving a supplier adds their business to the supplier catalog.</p>
+        </div>
+    @endif
+
     <div class="card mt-6">
         <form class="flex flex-wrap items-end gap-3 border-b border-stone-100 p-4">
             <div class="min-w-48 flex-1">
@@ -30,7 +57,7 @@
                 <label class="label" for="status">Status</label>
                 <select id="status" name="status" class="input" data-autosubmit>
                     <option value="">Any status</option>
-                    @foreach (['active' => 'Active', 'locked' => 'Locked', 'inactive' => 'Inactive'] as $key => $label)
+                    @foreach (['active' => 'Active', 'pending' => 'Pending approval', 'locked' => 'Locked', 'inactive' => 'Inactive'] as $key => $label)
                         <option value="{{ $key }}" @selected(request('status') === $key)>{{ $label }}</option>
                     @endforeach
                 </select>
@@ -47,7 +74,7 @@
                             <td class="font-medium">{{ $u->name }}</td>
                             <td>{{ $u->email }}</td>
                             <td><span class="badge-brand">{{ $u->roleLabel() }}</span></td>
-                            <td><span class="badge-{{ ['Active' => 'green', 'Locked' => 'amber', 'Inactive' => 'gray'][$status] }}">{{ $status }}</span></td>
+                            <td><span class="badge-{{ ['Active' => 'green', 'Pending' => 'gold', 'Locked' => 'amber', 'Inactive' => 'gray'][$status] }}">{{ $status }}</span></td>
                             <td class="text-stone-500">{{ $u->last_login_at?->diffForHumans() ?? 'Never' }}</td>
                             <td>
                                 <div class="flex justify-end gap-2">

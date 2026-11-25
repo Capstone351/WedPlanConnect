@@ -524,3 +524,19 @@ if (roleSelect) {
         if (event.target.matches('[data-role-select], [data-supplier-mode]')) sync();
     });
 }
+
+// Sign-up: show only the fields for the chosen account type. Hidden fields are disabled so the browser
+// neither requires nor sends them.
+const signupForm = document.querySelector('[data-signup-form]');
+if (signupForm) {
+    const sync = () => {
+        const type = signupForm.querySelector('[data-account-type]:checked')?.value ?? 'client';
+        signupForm.querySelectorAll('[data-account-only]').forEach((el) => {
+            const shown = el.dataset.accountOnly.split(' ').includes(type);
+            el.hidden = !shown;
+            el.querySelectorAll('input, select, textarea').forEach((field) => (field.disabled = !shown));
+        });
+    };
+    signupForm.addEventListener('change', (event) => event.target.matches('[data-account-type]') && sync());
+    sync();
+}

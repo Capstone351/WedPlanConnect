@@ -82,19 +82,37 @@
                 </div>
             </fieldset>
 
-            <div>
-                <label for="password" class="label">{{ $editing ? 'New password' : 'Password' }}</label>
-                <input id="password" name="password" type="password" @required(! $editing) autocomplete="new-password" class="input">
-                <p class="hint">{{ $editing ? 'Leave blank to keep the current password.' : 'At least 8 characters with letters and numbers. Share it with the person so they can log in.' }}</p>
-            </div>
-            <div>
-                <label for="password_confirmation" class="label">Confirm password</label>
-                <input id="password_confirmation" name="password_confirmation" type="password" autocomplete="new-password" class="input">
-            </div>
+            @if ($editing)
+                <div>
+                    <label for="password" class="label">New password</label>
+                    <input id="password" name="password" type="password" autocomplete="new-password" class="input">
+                    <p class="hint">Leave blank to keep the current password.</p>
+                </div>
+                <div>
+                    <label for="password_confirmation" class="label">Confirm password</label>
+                    <input id="password_confirmation" name="password_confirmation" type="password" autocomplete="new-password" class="input">
+                </div>
+            @else
+                <div class="flex items-start gap-3 rounded-xl border border-gold-300 bg-gold-50 px-4 py-3 text-sm text-stone-700 sm:col-span-2">
+                    <x-icon name="lock" class="mt-0.5 size-5 shrink-0 text-gold-700" />
+                    <span>No password needed. We'll email this person a link to <strong>set their own password</strong> (valid for {{ \App\Notifications\AccountInvitation::VALID_DAYS }} days), then they can log in.</span>
+                </div>
+            @endif
         </div>
         <div class="flex justify-end gap-2 border-t border-stone-100 px-5 py-4">
             <a href="{{ route('admin.users.index') }}" class="btn-secondary">Cancel</a>
-            <button class="btn-primary">{{ $editing ? 'Save changes' : 'Create account' }}</button>
+            <button class="btn-primary">{{ $editing ? 'Save changes' : 'Create account and send email' }}</button>
         </div>
     </form>
+
+    @if ($editing && ! $user->trashed())
+        <form method="POST" action="{{ route('admin.users.invite', $user) }}" class="card mt-4 flex max-w-3xl flex-wrap items-center justify-between gap-3 px-5 py-4">
+            @csrf
+            <div class="text-sm">
+                <div class="font-medium">Password set-up link</div>
+                <div class="text-stone-500">Emails {{ $user->email }} a new link to choose their password, e.g. if the first one expired.</div>
+            </div>
+            <button class="btn-secondary btn-sm"><x-icon name="bell" class="size-4" /> Send password set-up link</button>
+        </form>
+    @endif
 </x-layouts.app>

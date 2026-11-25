@@ -46,6 +46,9 @@ Route::middleware('guest')->group(function () {
     Route::post('/forgot-password', [Auth\PasswordResetController::class, 'email'])->middleware('throttle:6,1')->name('password.email');
     Route::get('/reset-password/{token}', [Auth\PasswordResetController::class, 'edit'])->name('password.reset');
     Route::post('/reset-password', [Auth\PasswordResetController::class, 'update'])->name('password.update');
+    // Accounts the Admin creates: the person sets their own password from the emailed link.
+    Route::get('/set-password/{token}', [Auth\PasswordSetupController::class, 'edit'])->name('password.setup');
+    Route::post('/set-password', [Auth\PasswordSetupController::class, 'update'])->middleware('throttle:10,1')->name('password.setup.store');
 });
 
 Route::post('/logout', [Auth\LoginController::class, 'logout'])->middleware('auth')->name('logout');
@@ -97,6 +100,11 @@ Route::middleware('auth')->group(function () {
         Route::delete('/users/{user}', [Admin\UserController::class, 'destroy'])->name('users.destroy');
         Route::patch('/users/{user}/restore', [Admin\UserController::class, 'restore'])->withTrashed()->name('users.restore');
         Route::patch('/users/{user}/unlock', [Admin\UserController::class, 'unlock'])->name('users.unlock');
+        Route::post('/users/{user}/invite', [Admin\UserController::class, 'invite'])->middleware('throttle:10,1')->name('users.invite');
+
+        // Wedding Planners and Suppliers who signed up themselves
+        Route::patch('/users/{user}/approve', [Admin\RegistrationController::class, 'approve'])->name('users.approve');
+        Route::delete('/users/{user}/reject', [Admin\RegistrationController::class, 'reject'])->name('users.reject');
 
         // Chatbot knowledge base
         Route::get('/faqs/logs', [Admin\FaqController::class, 'logs'])->name('faqs.logs');

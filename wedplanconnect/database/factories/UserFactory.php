@@ -55,6 +55,12 @@ class UserFactory extends Factory
         return $this->role('vendor');
     }
 
+    /** A Wedding Planner or Supplier who signed up and is waiting for the Admin's approval. */
+    public function awaitingApproval(): static
+    {
+        return $this->state(fn () => ['awaiting_approval' => true]);
+    }
+
     /**
      * Indicate that the model's email address should be unverified.
      */
